@@ -1,3 +1,4 @@
+import { Country } from '../../common/enum/country.enum';
 import { Difficulty, RecipeStatus } from '../../common/enum/recipe.enum';
 import { Recipe } from './entities/recipe.entity';
 import { RecipesService } from './recipes.service';
@@ -5,30 +6,31 @@ import { RecipesService } from './recipes.service';
 const createRecipe = (overrides: Partial<Recipe>): Recipe =>
     ({
         id: 'recipe-1',
-        title: 'Jollof rice',
-        slug: 'jollof-rice',
-        description: 'A beginner-friendly African rice dish.',
-        imageUrl: null,
-        videoUrl: null,
-        prepTimeMinutes: 10,
-        cookTimeMinutes: 25,
-        servings: 4,
+        title: 'Bouillie de riz',
+        slug: 'bouillie-de-riz',
+        description: 'Une bouillie de riz pour le petit-déjeuner.',
+        coverImageUrl: null,
+        prepMinutes: 10,
+        cookMinutes: 35,
+        baseServings: 2,
         difficulty: Difficulty.EASY,
-        budgetFcfa: 3000,
-        costPerServingFcfa: 750,
+        country: Country.BOTH,
+        category: 'Bouillies',
+        estimatedBudgetXof: 1000,
+        costPerServingXof: 500,
         status: RecipeStatus.PUBLISHED,
         isFeatured: false,
+        isPremium: false,
         ratingAverage: 4.5,
         ratingCount: 2,
         favoriteCount: 3,
         viewCount: 10,
-        tags: ['rice', 'african'],
-        cuisine: null,
-        category: null,
+        tags: ['riz', 'petit-déjeuner'],
         author: { id: 'user-1', fullname: 'Awa Koné' } as any,
         ingredients: [],
         steps: [],
         tips: [],
+        issues: [],
         createdAt: new Date('2026-10-01T10:00:00.000Z'),
         publishedAt: new Date('2026-10-01T10:00:00.000Z'),
         ...overrides,
@@ -40,11 +42,11 @@ describe('RecipesService', () => {
     let mockRecipeIngredientsRepository: any;
     let mockRecipeStepsRepository: any;
     let mockRecipeTipsRepository: any;
+    let mockRecipeIssuesRepository: any;
     let mockIngredientsRepository: any;
-    let mockCuisinesRepository: any;
-    let mockRecipeCategoriesRepository: any;
     let mockUsersRepository: any;
     let mockErrorHandlingService: any;
+    let mockRedisService: any;
 
     beforeEach(() => {
         mockRecipesRepository = {
@@ -53,6 +55,7 @@ describe('RecipesService', () => {
             create: jest.fn(),
             update: jest.fn(),
             softDelete: jest.fn(),
+            searchByIngredients: jest.fn(),
         };
         mockRecipeIngredientsRepository = {
             find: jest.fn(),
@@ -69,10 +72,18 @@ describe('RecipesService', () => {
             deleteMany: jest.fn(),
             createMany: jest.fn(),
         };
+        mockRecipeIssuesRepository = {
+            find: jest.fn(),
+            deleteMany: jest.fn(),
+            createMany: jest.fn(),
+        };
         mockIngredientsRepository = { findOne: jest.fn() };
-        mockCuisinesRepository = { findOne: jest.fn() };
-        mockRecipeCategoriesRepository = { findOne: jest.fn() };
         mockUsersRepository = { findOne: jest.fn() };
+        mockRedisService = {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn(),
+            del: jest.fn(),
+        };
         mockErrorHandlingService = {
             returnErrorOnNotFound: jest.fn(),
             returnErrorOnBadRequest: jest.fn(),
@@ -85,11 +96,11 @@ describe('RecipesService', () => {
             mockRecipeIngredientsRepository,
             mockRecipeStepsRepository,
             mockRecipeTipsRepository,
+            mockRecipeIssuesRepository,
             mockIngredientsRepository,
-            mockCuisinesRepository,
-            mockRecipeCategoriesRepository,
             mockUsersRepository,
             mockErrorHandlingService,
+            mockRedisService,
         );
     });
 
@@ -98,8 +109,8 @@ describe('RecipesService', () => {
             const published = createRecipe({});
             const draft = createRecipe({
                 id: 'recipe-2',
-                title: 'Draft recipe',
-                slug: 'draft-recipe',
+                title: 'Brouillon',
+                slug: 'brouillon',
                 status: RecipeStatus.DRAFT,
             });
             mockRecipesRepository.find.mockResolvedValue([published, draft]);
@@ -112,28 +123,28 @@ describe('RecipesService', () => {
 
             expect(actual.total).toBe(1);
             expect(actual.data).toHaveLength(1);
-            expect(actual.data[0].title).toBe('Jollof rice');
+            expect(actual.data[0].title).toBe('Bouillie de riz');
         });
 
         it('should filter recipes by maximum budget', async () => {
-            const cheap = createRecipe({ budgetFcfa: 2000 });
+            const cheap = createRecipe({ estimatedBudgetXof: 1000 });
             const expensive = createRecipe({
                 id: 'recipe-2',
-                title: 'Expensive recipe',
-                slug: 'expensive-recipe',
-                budgetFcfa: 9000,
+                title: 'Recette chère',
+                slug: 'recette-chere',
+                estimatedBudgetXof: 9000,
             });
             mockRecipesRepository.find.mockResolvedValue([cheap, expensive]);
 
             const actual = await service.findAll({
-                maxBudgetFcfa: 3000,
+                maxBudgetXof: 2000,
                 page: 1,
                 limit: 12,
                 sort: 'recent',
             });
 
             expect(actual.total).toBe(1);
-            expect(actual.data[0].budgetFcfa).toBe(2000);
+            expect(actual.data[0].estimatedBudgetXof).toBe(1000);
         });
     });
 
@@ -142,60 +153,64 @@ describe('RecipesService', () => {
             const recipe = createRecipe({
                 ingredients: [
                     {
-                        isOptional: false,
+                        optional: false,
                         ingredient: {
                             id: 'ingredient-1',
-                            name: 'Tomato',
-                            aliases: ['tomates'],
+                            name: 'Riz',
+                            localNames: { fr: 'riz' },
                         },
                     },
                     {
-                        isOptional: false,
+                        optional: false,
                         ingredient: {
                             id: 'ingredient-2',
-                            name: 'Onion',
-                            aliases: [],
+                            name: 'Eau',
+                            localNames: { fr: 'eau' },
                         },
                     },
                     {
-                        isOptional: false,
+                        optional: false,
                         ingredient: {
                             id: 'ingredient-3',
-                            name: 'Rice',
-                            aliases: [],
+                            name: 'Sucre',
+                            localNames: { fr: 'sucre' },
                         },
                     },
                 ] as any,
             });
-            mockRecipesRepository.find.mockResolvedValue([recipe]);
+            mockRecipesRepository.searchByIngredients.mockResolvedValue([
+                recipe,
+            ]);
 
             const actual = await service.searchByIngredients({
-                ingredients: ['tomato', 'onion'],
+                ingredients: ['riz', 'eau'],
                 limit: 5,
             });
 
             expect(actual.count).toBe(1);
             expect(actual.results[0].matchScore).toBe(67);
-            expect(actual.results[0].missingIngredients).toEqual(['Rice']);
+            expect(actual.results[0].missingIngredients).toEqual(['Sucre']);
         });
 
         it('should return no result when no ingredient matches', async () => {
             const recipe = createRecipe({
                 ingredients: [
                     {
-                        isOptional: false,
+                        optional: false,
                         ingredient: {
                             id: 'ingredient-1',
-                            name: 'Rice',
-                            aliases: [],
+                            name: 'Riz',
+                            localNames: {},
                         },
                     },
                 ] as any,
             });
-            mockRecipesRepository.find.mockResolvedValue([recipe]);
+            mockRecipesRepository.searchByIngredients.mockResolvedValue([
+                recipe,
+            ]);
 
             const actual = await service.searchByIngredients({
-                ingredients: ['chocolate'],
+                ingredients: ['chocolat'],
                 limit: 5,
             });
 

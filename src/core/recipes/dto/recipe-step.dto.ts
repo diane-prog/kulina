@@ -1,14 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+    IsBoolean,
+    IsInt,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    Min,
+} from 'class-validator';
 
 export class RecipeStepDto {
     @ApiProperty({ example: 1, required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Step number must be an integer' })
+    @IsInt({ message: 'Position must be an integer' })
     @Min(1)
-    stepNumber?: number;
+    position?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -28,14 +35,41 @@ export class RecipeStepDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Video timestamp must be an integer' })
+    @IsInt({ message: 'Ideal seconds must be an integer' })
     @Min(0)
-    videoTimestampSeconds?: number;
+    idealSeconds?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Duration must be an integer' })
+    @IsInt({ message: 'Minimum seconds must be an integer' })
     @Min(0)
-    durationMinutes?: number;
+    minSeconds?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt({ message: 'Maximum seconds must be an integer' })
+    @Min(0)
+    maxSeconds?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsBoolean({ message: 'isCritical must be a boolean' })
+    isCritical?: boolean;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString({ message: 'Tip must be a string' })
+    tip?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString({ message: 'Narration must be a string' })
+    narrationText?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString({ message: 'Audio URL must be a string' })
+    audioUrl?: string;
 }

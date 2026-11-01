@@ -11,7 +11,7 @@ import { AbstractEntity } from './abstract.entity';
 
 export abstract class AbstractRepository<T extends AbstractEntity<T>> {
     protected constructor(
-        private readonly entityRepository: Repository<T>,
+        protected readonly entityRepository: Repository<T>,
         protected readonly entityManager: EntityManager,
     ) {}
 

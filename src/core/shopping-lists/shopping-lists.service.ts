@@ -155,9 +155,9 @@ export class ShoppingListsService {
                 shoppingList: list,
                 ingredient,
                 quantity: dto.quantity,
-                unit: dto.unit ?? ingredient.unit,
+                unit: dto.unit ?? ingredient.defaultUnit,
                 estimatedPriceFcfa: Math.round(
-                    dto.quantity * ingredient.averagePriceFcfa,
+                    dto.quantity * ingredient.estimatedPriceXof,
                 ),
                 isChecked: dto.isChecked ?? false,
                 note: dto.note,
@@ -258,8 +258,8 @@ export class ShoppingListsService {
                 planItem.recipe.id,
                 true,
             );
-            const scale = recipe.servings
-                ? planItem.servings / recipe.servings
+            const scale = recipe.baseServings
+                ? planItem.servings / recipe.baseServings
                 : 1;
 
             for (const recipeIngredient of recipe.ingredients ?? []) {
@@ -273,7 +273,7 @@ export class ShoppingListsService {
                 if (existing) {
                     existing.quantity += recipeIngredient.quantity * scale;
                     existing.estimatedPriceFcfa += Math.round(
-                        recipeIngredient.estimatedPriceFcfa * scale,
+                        recipeIngredient.estimatedPriceXof * scale,
                     );
                 } else {
                     aggregated.set(key, {
@@ -281,7 +281,7 @@ export class ShoppingListsService {
                         quantity: recipeIngredient.quantity * scale,
                         unit: recipeIngredient.unit,
                         estimatedPriceFcfa: Math.round(
-                            recipeIngredient.estimatedPriceFcfa * scale,
+                            recipeIngredient.estimatedPriceXof * scale,
                         ),
                     });
                 }
@@ -415,8 +415,8 @@ export class ShoppingListsService {
                           name: item.ingredient.name,
                           slug: item.ingredient.slug,
                           category: item.ingredient.category,
-                          unit: item.ingredient.unit,
-                          averagePriceFcfa: item.ingredient.averagePriceFcfa,
+                          defaultUnit: item.ingredient.defaultUnit,
+                          estimatedPriceXof: item.ingredient.estimatedPriceXof,
                           imageUrl: item.ingredient.imageUrl,
                       }
                     : null,

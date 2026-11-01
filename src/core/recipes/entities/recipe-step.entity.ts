@@ -1,8 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity } from '../../../libs/database/abstract.entity';
 import { Recipe } from './recipe.entity';
 
 @Entity('recipe_steps')
+@Index(['recipe', 'position'])
 export class RecipeStep extends AbstractEntity<RecipeStep> {
     @ManyToOne(() => Recipe, (recipe) => recipe.steps, {
         onDelete: 'CASCADE',
@@ -11,7 +12,7 @@ export class RecipeStep extends AbstractEntity<RecipeStep> {
     recipe: Recipe;
 
     @Column({ type: 'int', nullable: false })
-    stepNumber: number;
+    position: number;
 
     @Column({ nullable: true })
     title: string;
@@ -23,8 +24,23 @@ export class RecipeStep extends AbstractEntity<RecipeStep> {
     imageUrl: string;
 
     @Column({ type: 'int', nullable: true })
-    videoTimestampSeconds: number;
+    idealSeconds: number;
 
-    @Column({ type: 'int', default: 0 })
-    durationMinutes: number;
+    @Column({ type: 'int', nullable: true })
+    minSeconds: number;
+
+    @Column({ type: 'int', nullable: true })
+    maxSeconds: number;
+
+    @Column({ default: false })
+    isCritical: boolean;
+
+    @Column({ type: 'text', nullable: true })
+    tip: string;
+
+    @Column({ type: 'text', nullable: true })
+    narrationText: string;
+
+    @Column({ nullable: true })
+    audioUrl: string;
 }

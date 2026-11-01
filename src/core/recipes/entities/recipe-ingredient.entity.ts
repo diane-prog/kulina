@@ -25,8 +25,11 @@ export class RecipeIngredient extends AbstractEntity<RecipeIngredient> {
     note: string;
 
     @Column({ default: false })
-    isOptional: boolean;
+    optional: boolean;
+
+    @Column({ type: 'jsonb', nullable: true })
+    substitutes: Record<string, string>;
 
     @Column({ type: 'int', default: 0 })
-    estimatedPriceFcfa: number;
+    estimatedPriceXof: number;
 }

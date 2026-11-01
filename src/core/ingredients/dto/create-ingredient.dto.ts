@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-    IsArray,
     IsBoolean,
     IsInt,
     IsNotEmpty,
+    IsObject,
     IsOptional,
     IsString,
     Min,
@@ -12,28 +12,28 @@ import {
 } from 'class-validator';
 
 export class CreateIngredientDto {
-    @ApiProperty({ example: 'Tomato' })
+    @ApiProperty({ example: 'Riz' })
     @IsNotEmpty({ message: 'Name is required' })
     @IsString({ message: 'Name must be a string' })
     @MinLength(2, { message: 'Name must be at least 2 characters' })
     name: string;
 
-    @ApiProperty({ example: 'Vegetables', required: false })
+    @ApiProperty({ example: 'Céréales', required: false })
     @IsOptional()
     @IsString({ message: 'Category must be a string' })
     category?: string;
 
     @ApiProperty({ example: 'kg', required: false })
     @IsOptional()
-    @IsString({ message: 'Unit must be a string' })
-    unit?: string;
+    @IsString({ message: 'Default unit must be a string' })
+    defaultUnit?: string;
 
-    @ApiProperty({ example: 750, required: false })
+    @ApiProperty({ example: 700, required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Average price must be an integer' })
-    @Min(0, { message: 'Average price cannot be negative' })
-    averagePriceFcfa?: number;
+    @IsInt({ message: 'Estimated price must be an integer' })
+    @Min(0)
+    estimatedPriceXof?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -45,11 +45,13 @@ export class CreateIngredientDto {
     @IsString({ message: 'Image URL must be a string' })
     imageUrl?: string;
 
-    @ApiProperty({ type: [String], required: false })
+    @ApiProperty({
+        required: false,
+        example: { fr: 'riz', fon: 'lan', mina: 'molu', ewe: 'molu' },
+    })
     @IsOptional()
-    @IsArray({ message: 'Aliases must be an array' })
-    @IsString({ each: true })
-    aliases?: string[];
+    @IsObject({ message: 'Local names must be an object' })
+    localNames?: Record<string, string>;
 
     @ApiProperty({ required: false })
     @IsOptional()

@@ -2,3 +2,6 @@ allowBuilds:
   '@parcel/watcher': true
   unrs-resolver: true
   '@scarf/scarf': true
+  '@google/genai': true
+  msgpackr-extract: true
+  protobufjs: true

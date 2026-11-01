@@ -6,10 +6,10 @@ import {
     IsInt,
     IsOptional,
     IsString,
-    IsUUID,
     Max,
     Min,
 } from 'class-validator';
+import { Country } from '../../../common/enum/country.enum';
 import { Difficulty } from '../../../common/enum/recipe.enum';
 
 export class QueryRecipesDto {
@@ -18,15 +18,15 @@ export class QueryRecipesDto {
     @IsString({ message: 'Query must be a string' })
     query?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({ enum: Country, required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Cuisine id must be a valid UUID' })
-    cuisineId?: string;
+    @IsEnum(Country, { message: 'Country is not valid' })
+    country?: Country;
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Category id must be a valid UUID' })
-    categoryId?: string;
+    @IsString({ message: 'Category must be a string' })
+    category?: string;
 
     @ApiProperty({ enum: Difficulty, required: false })
     @IsOptional()
@@ -38,7 +38,7 @@ export class QueryRecipesDto {
     @Type(() => Number)
     @IsInt({ message: 'Maximum budget must be an integer' })
     @Min(0)
-    maxBudgetFcfa?: number;
+    maxBudgetXof?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()

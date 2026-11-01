@@ -9,18 +9,19 @@ import {
     IsNotEmpty,
     IsOptional,
     IsString,
-    IsUUID,
     Min,
     MinLength,
     ValidateNested,
 } from 'class-validator';
+import { Country } from '../../../common/enum/country.enum';
 import { Difficulty, RecipeStatus } from '../../../common/enum/recipe.enum';
 import { RecipeIngredientDto } from './recipe-ingredient.dto';
+import { RecipeIssueDto } from './recipe-issue.dto';
 import { RecipeStepDto } from './recipe-step.dto';
 import { RecipeTipDto } from './recipe-tip.dto';
 
 export class CreateRecipeDto {
-    @ApiProperty({ example: 'Poulet braisé' })
+    @ApiProperty({ example: 'Bouillie de riz' })
     @IsNotEmpty({ message: 'Title is required' })
     @IsString({ message: 'Title must be a string' })
     @MinLength(3, { message: 'Title must be at least 3 characters' })
@@ -33,56 +34,51 @@ export class CreateRecipeDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsString({ message: 'Image URL must be a string' })
-    imageUrl?: string;
-
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsString({ message: 'Video URL must be a string' })
-    videoUrl?: string;
+    @IsString({ message: 'Cover image URL must be a string' })
+    coverImageUrl?: string;
 
     @ApiProperty({ example: 15, required: false })
     @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'Preparation time must be an integer' })
     @Min(0)
-    prepTimeMinutes?: number;
+    prepMinutes?: number;
 
     @ApiProperty({ example: 30, required: false })
     @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'Cooking time must be an integer' })
     @Min(0)
-    cookTimeMinutes?: number;
+    cookMinutes?: number;
 
     @ApiProperty({ example: 4, required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Servings must be an integer' })
+    @IsInt({ message: 'Base servings must be an integer' })
     @Min(1)
-    servings?: number;
+    baseServings?: number;
 
     @ApiProperty({ enum: Difficulty, required: false })
     @IsOptional()
     @IsEnum(Difficulty, { message: 'Difficulty is not valid' })
     difficulty?: Difficulty;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({ enum: Country, required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Cuisine id must be a valid UUID' })
-    cuisineId?: string;
+    @IsEnum(Country, { message: 'Country is not valid' })
+    country?: Country;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({ example: 'Bouillies', required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Category id must be a valid UUID' })
-    categoryId?: string;
+    @IsString({ message: 'Category must be a string' })
+    category?: string;
 
     @ApiProperty({ example: 5000, required: false })
     @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'Budget must be an integer' })
     @Min(0)
-    budgetFcfa?: number;
+    estimatedBudgetXof?: number;
 
     @ApiProperty({ type: [String], required: false })
     @IsOptional()
@@ -111,10 +107,22 @@ export class CreateRecipeDto {
     @Type(() => RecipeTipDto)
     tips?: RecipeTipDto[];
 
+    @ApiProperty({ type: [RecipeIssueDto], required: false })
+    @IsOptional()
+    @IsArray({ message: 'Issues must be an array' })
+    @ValidateNested({ each: true })
+    @Type(() => RecipeIssueDto)
+    issues?: RecipeIssueDto[];
+
     @ApiProperty({ required: false })
     @IsOptional()
     @IsBoolean({ message: 'isFeatured must be a boolean' })
     isFeatured?: boolean;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsBoolean({ message: 'isPremium must be a boolean' })
+    isPremium?: boolean;
 
     @ApiProperty({ enum: RecipeStatus, required: false })
     @IsOptional()

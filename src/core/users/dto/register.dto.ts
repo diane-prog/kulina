@@ -22,10 +22,15 @@ export class RegisterUserDto {
     @MinLength(2, { message: 'Fullname must be at least 2 characters' })
     fullname: string;
 
-    @ApiProperty({ example: 'awa@example.com' })
-    @IsNotEmpty({ message: 'Email is required' })
+    @ApiProperty({ example: 'awa@example.com', required: false })
+    @IsOptional()
     @IsEmail({}, { message: 'The email format is not valid' })
-    email: string;
+    email?: string;
+
+    @ApiProperty({ example: '+22997000000', required: false })
+    @IsOptional()
+    @Matches(/^\+?[0-9\s-]{8,20}$/, { message: 'Phone number is not valid' })
+    phone?: string;
 
     @ApiProperty({ example: 'Kulina2026!' })
     @IsNotEmpty({ message: 'Password is required' })
@@ -47,27 +52,33 @@ export class RegisterUserDto {
     @IsEnum(SkillLevel, { message: 'Skill level is not valid' })
     skillLevel?: SkillLevel;
 
-    @ApiProperty({ example: 'Côte d’Ivoire', required: false })
+    @ApiProperty({ example: 'BJ', required: false })
     @IsOptional()
     @IsString({ message: 'Country must be a string' })
     country?: string;
 
-    @ApiProperty({ example: 'Abidjan', required: false })
+    @ApiProperty({ example: 'Cotonou', required: false })
     @IsOptional()
     @IsString({ message: 'City must be a string' })
     city?: string;
 
-    @ApiProperty({ example: 'Ivorian', required: false })
+    @ApiProperty({ example: 'fr', required: false })
     @IsOptional()
-    @IsString({ message: 'Preferred cuisine must be a string' })
-    preferredCuisine?: string;
+    @IsString({ message: 'Locale must be a string' })
+    locale?: string;
+
+    @ApiProperty({ example: ['Bouillies'], required: false })
+    @IsOptional()
+    @IsArray({ message: 'Preferred categories must be an array' })
+    @IsString({ each: true })
+    preferredCategories?: string[];
 
     @ApiProperty({ example: 50000, required: false })
     @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'Monthly budget must be an integer' })
     @Min(0, { message: 'Monthly budget cannot be negative' })
-    monthlyBudgetFcfa?: number;
+    monthlyBudgetXof?: number;
 
     @ApiProperty({ example: ['vegetarian'], required: false })
     @IsOptional()

@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Country } from '../../common/enum/country.enum';
 import { ErrorHandlingService } from '../../common/response/errorHandler.service';
 import { paginate } from '../../utils/pagination';
 import { toSlug } from '../../utils/slug';
-import { CuisinesRepository } from '../cuisines/repositories/cuisines.repository';
 import { UsersRepository } from '../users/repositories/users.repository';
 import { CreateTutorialDto } from './dto/create-tutorial.dto';
 import { QueryTutorialsDto } from './dto/query-tutorials.dto';
@@ -15,7 +15,6 @@ export class TutorialsService {
     constructor(
         private readonly tutorialsRepository: TutorialsRepository,
         private readonly usersRepository: UsersRepository,
-        private readonly cuisinesRepository: CuisinesRepository,
         private readonly errorHandlingService: ErrorHandlingService,
     ) {}
 
@@ -38,21 +37,6 @@ export class TutorialsService {
             );
         }
 
-        let cuisine = null;
-
-        if (dto.cuisineId) {
-            cuisine = await this.cuisinesRepository.findOne({
-                where: { id: dto.cuisineId, deleted: false },
-            });
-
-            if (!cuisine) {
-                this.errorHandlingService.returnErrorOnNotFound(
-                    `Cuisine ${dto.cuisineId} not found`,
-                    'Cuisine not found',
-                );
-            }
-        }
-
         return await this.tutorialsRepository.create(
             new Tutorial({
                 title: dto.title,
@@ -62,7 +46,8 @@ export class TutorialsService {
                 videoUrl: dto.videoUrl,
                 durationMinutes: dto.durationMinutes ?? 0,
                 level: dto.level,
-                cuisine,
+                country: dto.country ?? Country.BOTH,
+                category: dto.category,
                 author,
                 tags: dto.tags ?? [],
                 isPublished: dto.isPublished ?? false,
@@ -79,7 +64,7 @@ export class TutorialsService {
     async findAll(query: QueryTutorialsDto) {
         const tutorials = await this.tutorialsRepository.find({
             where: { deleted: false, isPublished: true },
-            relations: ['cuisine', 'author'],
+            relations: ['author'],
             order: { createdAt: 'DESC' },
         });
 
@@ -92,14 +77,24 @@ export class TutorialsService {
                       tag.toLowerCase().includes(search),
                   )
                 : true;
-            const matchesCuisine = query.cuisineId
-                ? tutorial.cuisine?.id === query.cuisineId
+            const matchesCountry = query.country
+                ? tutorial.country === query.country ||
+                  tutorial.country === Country.BOTH
+                : true;
+            const matchesCategory = query.category
+                ? tutorial.category?.toLowerCase() ===
+                  query.category.toLowerCase()
                 : true;
             const matchesLevel = query.level
                 ? tutorial.level === query.level
                 : true;
 
-            return matchesQuery && matchesCuisine && matchesLevel;
+            return (
+                matchesQuery &&
+                matchesCountry &&
+                matchesCategory &&
+                matchesLevel
+            );
         });
 
         const page = query.page ?? 1;
@@ -120,7 +115,7 @@ export class TutorialsService {
     async findOne(id: string): Promise<Tutorial> {
         const tutorial = await this.tutorialsRepository.findOne({
             where: { id, deleted: false },
-            relations: ['cuisine', 'author'],
+            relations: ['author'],
         });
 
         if (!tutorial) {
@@ -169,21 +164,6 @@ export class TutorialsService {
             );
         }
 
-        let cuisine = tutorial.cuisine;
-
-        if (dto.cuisineId) {
-            cuisine = await this.cuisinesRepository.findOne({
-                where: { id: dto.cuisineId, deleted: false },
-            });
-
-            if (!cuisine) {
-                this.errorHandlingService.returnErrorOnNotFound(
-                    `Cuisine ${dto.cuisineId} not found`,
-                    'Cuisine not found',
-                );
-            }
-        }
-
         await this.tutorialsRepository.update(
             { id },
             {
@@ -197,7 +177,8 @@ export class TutorialsService {
                 durationMinutes:
                     dto.durationMinutes ?? tutorial.durationMinutes,
                 level: dto.level ?? tutorial.level,
-                cuisine,
+                country: dto.country ?? tutorial.country,
+                category: dto.category ?? tutorial.category,
                 tags: dto.tags ?? tutorial.tags,
                 isPublished: dto.isPublished ?? tutorial.isPublished,
             },
@@ -277,15 +258,11 @@ export class TutorialsService {
             videoUrl: tutorial.videoUrl,
             durationMinutes: tutorial.durationMinutes,
             level: tutorial.level,
+            country: tutorial.country,
+            category: tutorial.category,
             isPublished: tutorial.isPublished,
             viewCount: tutorial.viewCount,
             tags: tutorial.tags ?? [],
-            cuisine: tutorial.cuisine
-                ? {
-                      id: tutorial.cuisine.id,
-                      name: tutorial.cuisine.name,
-                  }
-                : null,
             author: tutorial.author
                 ? {
                       id: tutorial.author.id,

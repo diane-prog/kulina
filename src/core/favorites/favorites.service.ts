@@ -87,12 +87,7 @@ export class FavoritesService {
     async findByUser(userId: string) {
         const favorites = await this.favoritesRepository.find({
             where: { user: { id: userId }, deleted: false },
-            relations: [
-                'recipe',
-                'recipe.cuisine',
-                'recipe.category',
-                'recipe.author',
-            ],
+            relations: ['recipe', 'recipe.author'],
             order: { createdAt: 'DESC' },
         });
 
@@ -105,25 +100,15 @@ export class FavoritesService {
                       title: favorite.recipe.title,
                       slug: favorite.recipe.slug,
                       description: favorite.recipe.description,
-                      imageUrl: favorite.recipe.imageUrl,
-                      prepTimeMinutes: favorite.recipe.prepTimeMinutes,
-                      cookTimeMinutes: favorite.recipe.cookTimeMinutes,
-                      servings: favorite.recipe.servings,
+                      coverImageUrl: favorite.recipe.coverImageUrl,
+                      prepMinutes: favorite.recipe.prepMinutes,
+                      cookMinutes: favorite.recipe.cookMinutes,
+                      baseServings: favorite.recipe.baseServings,
                       difficulty: favorite.recipe.difficulty,
-                      budgetFcfa: favorite.recipe.budgetFcfa,
+                      country: favorite.recipe.country,
+                      category: favorite.recipe.category,
+                      estimatedBudgetXof: favorite.recipe.estimatedBudgetXof,
                       ratingAverage: favorite.recipe.ratingAverage,
-                      cuisine: favorite.recipe.cuisine
-                          ? {
-                                id: favorite.recipe.cuisine.id,
-                                name: favorite.recipe.cuisine.name,
-                            }
-                          : null,
-                      category: favorite.recipe.category
-                          ? {
-                                id: favorite.recipe.category.id,
-                                name: favorite.recipe.category.name,
-                            }
-                          : null,
                   }
                 : null,
         }));

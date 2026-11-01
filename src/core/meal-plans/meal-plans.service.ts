@@ -158,8 +158,8 @@ export class MealPlansService {
                 recipe,
                 plannedDate: this.normalizeDate(dto.plannedDate),
                 mealType: dto.mealType,
-                servings: dto.servings ?? recipe.servings,
-                estimatedCostFcfa: recipe.budgetFcfa,
+                servings: dto.servings ?? recipe.baseServings,
+                estimatedCostFcfa: recipe.estimatedBudgetXof,
             }),
         );
 
@@ -219,30 +219,32 @@ export class MealPlansService {
 
         const recipes = await this.recipesRepository.find({
             where: { deleted: false, status: RecipeStatus.PUBLISHED },
-            relations: ['cuisine'],
         });
 
         const budgetPerMeal = Math.floor(dto.budgetFcfa / (7 * meals.length));
+        const matchesFilters = (recipe: any) =>
+            (!dto.country ||
+                recipe.country === dto.country ||
+                recipe.country === 'BOTH') &&
+            (!dto.category ||
+                recipe.category?.toLowerCase() === dto.category.toLowerCase());
         const candidates = recipes
             .filter(
                 (recipe) =>
-                    (!dto.cuisineId || recipe.cuisine?.id === dto.cuisineId) &&
-                    recipe.budgetFcfa <= budgetPerMeal,
+                    matchesFilters(recipe) &&
+                    recipe.estimatedBudgetXof <= budgetPerMeal,
             )
             .sort((a, b) => {
                 if (b.ratingAverage !== a.ratingAverage) {
                     return b.ratingAverage - a.ratingAverage;
                 }
 
-                return a.budgetFcfa - b.budgetFcfa;
+                return a.estimatedBudgetXof - b.estimatedBudgetXof;
             });
 
         const fallback = recipes
-            .filter(
-                (recipe) =>
-                    !dto.cuisineId || recipe.cuisine?.id === dto.cuisineId,
-            )
-            .sort((a, b) => a.budgetFcfa - b.budgetFcfa);
+            .filter((recipe) => matchesFilters(recipe))
+            .sort((a, b) => a.estimatedBudgetXof - b.estimatedBudgetXof);
         const pool = candidates.length > 0 ? candidates : fallback;
 
         if (pool.length === 0) {
@@ -280,8 +282,8 @@ export class MealPlansService {
                         recipe,
                         plannedDate,
                         mealType,
-                        servings: dto.servings ?? recipe.servings,
-                        estimatedCostFcfa: recipe.budgetFcfa,
+                        servings: dto.servings ?? recipe.baseServings,
+                        estimatedCostFcfa: recipe.estimatedBudgetXof,
                     }),
                 );
             }
@@ -334,12 +336,7 @@ export class MealPlansService {
     private async retrievePlan(id: string, userId: string): Promise<MealPlan> {
         const plan = await this.mealPlansRepository.findOne({
             where: { id, deleted: false },
-            relations: [
-                'items',
-                'items.recipe',
-                'items.recipe.cuisine',
-                'items.recipe.category',
-            ],
+            relations: ['items', 'items.recipe'],
         });
 
         if (!plan) {
@@ -430,17 +427,13 @@ export class MealPlansService {
                           id: item.recipe.id,
                           title: item.recipe.title,
                           slug: item.recipe.slug,
-                          imageUrl: item.recipe.imageUrl,
+                          coverImageUrl: item.recipe.coverImageUrl,
                           difficulty: item.recipe.difficulty,
-                          budgetFcfa: item.recipe.budgetFcfa,
-                          prepTimeMinutes: item.recipe.prepTimeMinutes,
-                          cookTimeMinutes: item.recipe.cookTimeMinutes,
-                          cuisine: item.recipe.cuisine
-                              ? {
-                                    id: item.recipe.cuisine.id,
-                                    name: item.recipe.cuisine.name,
-                                }
-                              : null,
+                          country: item.recipe.country,
+                          category: item.recipe.category,
+                          estimatedBudgetXof: item.recipe.estimatedBudgetXof,
+                          prepMinutes: item.recipe.prepMinutes,
+                          cookMinutes: item.recipe.cookMinutes,
                       }
                     : null,
             }))

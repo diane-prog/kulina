@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../libs/database/database.module';
-import { CuisinesModule } from '../cuisines/cuisines.module';
 import { IngredientsModule } from '../ingredients/ingredients.module';
-import { RecipeCategoriesModule } from '../recipe-categories/recipe-categories.module';
 import { UsersModule } from '../users/users.module';
 import { Recipe } from './entities/recipe.entity';
 import { RecipeIngredient } from './entities/recipe-ingredient.entity';
+import { RecipeIssue } from './entities/recipe-issue.entity';
 import { RecipeStep } from './entities/recipe-step.entity';
 import { RecipeTip } from './entities/recipe-tip.entity';
 import { RecipeIngredientsRepository } from './repositories/recipe-ingredients.repository';
+import { RecipeIssuesRepository } from './repositories/recipe-issues.repository';
 import { RecipeStepsRepository } from './repositories/recipe-steps.repository';
 import { RecipeTipsRepository } from './repositories/recipe-tips.repository';
 import { RecipesRepository } from './repositories/recipes.repository';
@@ -23,11 +23,10 @@ import { RecipesService } from './recipes.service';
             RecipeIngredient,
             RecipeStep,
             RecipeTip,
+            RecipeIssue,
         ]),
         UsersModule,
         IngredientsModule,
-        CuisinesModule,
-        RecipeCategoriesModule,
     ],
     controllers: [RecipesController],
     providers: [
@@ -36,7 +35,14 @@ import { RecipesService } from './recipes.service';
         RecipeIngredientsRepository,
         RecipeStepsRepository,
         RecipeTipsRepository,
+        RecipeIssuesRepository,
     ],
-    exports: [RecipesService, RecipesRepository, RecipeIngredientsRepository],
+    exports: [
+        RecipesService,
+        RecipesRepository,
+        RecipeIngredientsRepository,
+        RecipeStepsRepository,
+        RecipeIssuesRepository,
+    ],
 })
 export class RecipesModule {}

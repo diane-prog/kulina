@@ -29,11 +29,10 @@ export class IngredientsService {
 
         const search = query.query?.toLowerCase();
         const filtered = ingredients.filter((ingredient) => {
+            const localNames = Object.values(ingredient.localNames ?? {});
             const matchesQuery = search
                 ? ingredient.name.toLowerCase().includes(search) ||
-                  ingredient.aliases?.some((alias) =>
-                      alias.toLowerCase().includes(search),
-                  )
+                  localNames.some((name) => name.toLowerCase().includes(search))
                 : true;
             const matchesCategory = query.category
                 ? ingredient.category?.toLowerCase() ===
@@ -72,7 +71,7 @@ export class IngredientsService {
     }
 
     /**
-     * Finds ingredients by name or alias.
+     * Finds ingredients by name or local name.
      *
      * @param names - Names to look up
      * @returns Matching ingredients
@@ -86,8 +85,8 @@ export class IngredientsService {
         return ingredients.filter((ingredient) => {
             const candidates = [
                 ingredient.name.toLowerCase(),
-                ...(ingredient.aliases ?? []).map((alias) =>
-                    alias.toLowerCase(),
+                ...Object.values(ingredient.localNames ?? {}).map((name) =>
+                    name.toLowerCase(),
                 ),
             ];
 
@@ -124,11 +123,11 @@ export class IngredientsService {
                 name: dto.name,
                 slug,
                 category: dto.category,
-                unit: dto.unit ?? 'unit',
-                averagePriceFcfa: dto.averagePriceFcfa ?? 0,
+                defaultUnit: dto.defaultUnit ?? 'unit',
+                estimatedPriceXof: dto.estimatedPriceXof ?? 0,
                 description: dto.description,
                 imageUrl: dto.imageUrl,
-                aliases: dto.aliases ?? [],
+                localNames: dto.localNames ?? {},
                 isCommon: dto.isCommon ?? false,
             }),
         );
@@ -150,12 +149,12 @@ export class IngredientsService {
                 name: dto.name ?? ingredient.name,
                 slug: dto.name ? toSlug(dto.name) : ingredient.slug,
                 category: dto.category ?? ingredient.category,
-                unit: dto.unit ?? ingredient.unit,
-                averagePriceFcfa:
-                    dto.averagePriceFcfa ?? ingredient.averagePriceFcfa,
+                defaultUnit: dto.defaultUnit ?? ingredient.defaultUnit,
+                estimatedPriceXof:
+                    dto.estimatedPriceXof ?? ingredient.estimatedPriceXof,
                 description: dto.description ?? ingredient.description,
                 imageUrl: dto.imageUrl ?? ingredient.imageUrl,
-                aliases: dto.aliases ?? ingredient.aliases,
+                localNames: dto.localNames ?? ingredient.localNames,
                 isCommon: dto.isCommon ?? ingredient.isCommon,
             },
         );

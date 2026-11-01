@@ -15,7 +15,7 @@ import { AuthService } from '../../../common/guards/jwt.strategy.service';
 import { PasswordHashService } from '../../../helpers/password_hash/passwordHash.service';
 import { MailerService } from '../../../libs/mailer/mailer.service';
 import { paginate } from '../../../utils/pagination';
-import { FilesRepository } from '../../cloudinary/repositories/files.repository';
+import { MediaRepository } from '../../media/repositories/media.repository';
 import { RolesRepository } from '../../roles/repositories/roles.repository';
 import { AdminUpdateUserDto } from '../dto/admin-update-user.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
@@ -35,7 +35,7 @@ export class UsersService {
         private readonly configService: ConfigService,
         private readonly usersRepository: UsersRepository,
         private readonly rolesRepository: RolesRepository,
-        private readonly filesRepository: FilesRepository,
+        private readonly mediaRepository: MediaRepository,
         private readonly passwordHashService: PasswordHashService,
         private readonly mailerService: MailerService,
         private readonly authService: AuthService,
@@ -61,15 +61,26 @@ export class UsersService {
             );
         }
 
-        const email = dto.email.trim().toLowerCase();
-        const existingUser = await this.usersRepository.findOne({
-            where: { email },
-        });
+        const email = dto.email?.trim().toLowerCase();
+        const phone = dto.phone?.trim();
+
+        if (!email && !phone) {
+            this.errorHandlingService.returnErrorOnBadRequest(
+                'Email or phone is required',
+                'Email or phone is required',
+            );
+        }
+
+        const existingUser = email
+            ? await this.usersRepository.findOne({ where: { email } })
+            : phone
+              ? await this.usersRepository.findOne({ where: { phone } })
+              : null;
 
         if (existingUser) {
             this.errorHandlingService.returnErrorOnConflict(
-                `Email ${email} already exists`,
-                'Email already exists',
+                'Email or phone already exists',
+                'Email or phone already exists',
             );
         }
 
@@ -95,7 +106,7 @@ export class UsersService {
         let avatar = null;
 
         if (dto.avatarId) {
-            avatar = await this.filesRepository.findOne({
+            avatar = await this.mediaRepository.findOne({
                 where: { id: dto.avatarId, deleted: false },
             });
 
@@ -115,14 +126,16 @@ export class UsersService {
             new Users({
                 fullname: dto.fullname.trim(),
                 email,
-                password: hashedPassword,
+                phone,
+                passwordHash: hashedPassword,
                 avatar,
                 role,
                 skillLevel: dto.skillLevel ?? SkillLevel.BEGINNER,
                 country: dto.country,
                 city: dto.city,
-                preferredCuisine: dto.preferredCuisine,
-                monthlyBudgetFcfa: dto.monthlyBudgetFcfa ?? 0,
+                locale: dto.locale ?? 'fr',
+                preferredCategories: dto.preferredCategories ?? [],
+                monthlyBudgetXof: dto.monthlyBudgetXof ?? 0,
                 dietaryPreferences: dto.dietaryPreferences ?? [],
                 allergies: dto.allergies ?? [],
                 status: UserStatus.ACTIVE,
@@ -132,9 +145,11 @@ export class UsersService {
             }),
         );
 
-        void this.sendWelcomeEmail(user);
+        if (user.email) {
+            void this.sendWelcomeEmail(user);
+        }
 
-        this.logger.info(`User ${user.email} registered`);
+        this.logger.info(`User ${user.email ?? user.phone} registered`);
 
         return {
             user: this.sanitizeUser(user),
@@ -154,14 +169,19 @@ export class UsersService {
         user: Record<string, unknown>;
         token: string;
     }> {
-        const email = dto.email.trim().toLowerCase();
+        const identity = dto.identity.trim();
+        const where = identity.includes('@')
+            ? { email: identity.toLowerCase(), deleted: false }
+            : { phone: identity, deleted: false };
         const user = await this.usersRepository.findOne({
-            where: { email, deleted: false },
+            where,
             relations: ['role', 'avatar'],
         });
 
         if (!user) {
-            throw new UnauthorizedException('Invalid email or password');
+            throw new UnauthorizedException(
+                'Invalid email, phone, or password',
+            );
         }
 
         if (
@@ -179,7 +199,7 @@ export class UsersService {
 
         const isPasswordValid = await this.passwordHashService.comparePassword(
             dto.password,
-            user.password,
+            user.passwordHash,
         );
 
         if (!isPasswordValid) {
@@ -227,7 +247,7 @@ export class UsersService {
         let avatar = user.avatar;
 
         if (dto.avatarId) {
-            avatar = await this.filesRepository.findOne({
+            avatar = await this.mediaRepository.findOne({
                 where: { id: dto.avatarId, deleted: false },
             });
 
@@ -242,13 +262,15 @@ export class UsersService {
             { id: userId },
             {
                 fullname: dto.fullname ?? user.fullname,
+                phone: dto.phone ?? user.phone,
                 bio: dto.bio ?? user.bio,
                 country: dto.country ?? user.country,
                 city: dto.city ?? user.city,
-                preferredCuisine: dto.preferredCuisine ?? user.preferredCuisine,
+                locale: dto.locale ?? user.locale,
+                preferredCategories:
+                    dto.preferredCategories ?? user.preferredCategories,
                 skillLevel: dto.skillLevel ?? user.skillLevel,
-                monthlyBudgetFcfa:
-                    dto.monthlyBudgetFcfa ?? user.monthlyBudgetFcfa,
+                monthlyBudgetXof: dto.monthlyBudgetXof ?? user.monthlyBudgetXof,
                 dietaryPreferences:
                     dto.dietaryPreferences ?? user.dietaryPreferences,
                 allergies: dto.allergies ?? user.allergies,
@@ -282,7 +304,7 @@ export class UsersService {
         const isCurrentPasswordValid =
             await this.passwordHashService.comparePassword(
                 dto.currentPassword,
-                user.password,
+                user.passwordHash,
             );
 
         if (!isCurrentPasswordValid) {
@@ -294,7 +316,7 @@ export class UsersService {
         );
         await this.usersRepository.update(
             { id: userId },
-            { password: hashedPassword },
+            { passwordHash: hashedPassword },
         );
 
         return { message: 'Password updated successfully' };
@@ -392,7 +414,7 @@ export class UsersService {
         );
         await this.usersRepository.update(
             { id: user.id },
-            { password: hashedPassword },
+            { passwordHash: hashedPassword },
         );
 
         return { message: 'Password reset successfully' };
@@ -607,13 +629,17 @@ export class UsersService {
             id: user.id,
             fullname: user.fullname,
             email: user.email,
-            avatar: user.avatar?.path ?? null,
+            avatar: user.avatar?.url ?? null,
             bio: user.bio ?? null,
             country: user.country ?? null,
             city: user.city ?? null,
-            preferredCuisine: user.preferredCuisine ?? null,
+            phone: user.phone ?? null,
+            locale: user.locale ?? 'fr',
+            preferredCategories: user.preferredCategories ?? [],
             skillLevel: user.skillLevel,
-            monthlyBudgetFcfa: user.monthlyBudgetFcfa,
+            monthlyBudgetXof: user.monthlyBudgetXof,
+            plan: user.plan,
+            premiumUntil: user.premiumUntil ?? null,
             dietaryPreferences: user.dietaryPreferences ?? [],
             allergies: user.allergies ?? [],
             points: user.points,
@@ -639,7 +665,8 @@ export class UsersService {
      */
     private generateToken(user: Users): string {
         const expiresIn =
-            this.configService.get<string>('auth.jwtExpirationTime') ?? '7d';
+            this.configService.get<string>('auth.jwtAccessExpirationTime') ??
+            '15m';
 
         return jwt.sign(
             { id: user.id },

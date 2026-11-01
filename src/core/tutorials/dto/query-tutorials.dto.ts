@@ -1,14 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-    IsEnum,
-    IsInt,
-    IsOptional,
-    IsString,
-    IsUUID,
-    Max,
-    Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Country } from '../../../common/enum/country.enum';
 import { SkillLevel } from '../../../common/enum/user.enum';
 
 export class QueryTutorialsDto {
@@ -17,10 +10,15 @@ export class QueryTutorialsDto {
     @IsString({ message: 'Query must be a string' })
     query?: string;
 
+    @ApiProperty({ enum: Country, required: false })
+    @IsOptional()
+    @IsEnum(Country, { message: 'Country is not valid' })
+    country?: Country;
+
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Cuisine id must be a valid UUID' })
-    cuisineId?: string;
+    @IsString({ message: 'Category must be a string' })
+    category?: string;
 
     @ApiProperty({ enum: SkillLevel, required: false })
     @IsOptional()

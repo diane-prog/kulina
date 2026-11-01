@@ -5,8 +5,8 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { PasswordHashModule } from '../../helpers/password_hash/passwordHash.module';
 import { DatabaseModule } from '../../libs/database/database.module';
 import { MailerModule } from '../../libs/mailer/mailer.module';
-import { CloudinaryModule } from '../cloudinary/cloudinary.module';
-import { Files } from '../cloudinary/entities/file.entity';
+import { Media } from '../media/entities/media.entity';
+import { MediaModule } from '../media/media.module';
 import { Roles } from '../roles/entities/roles.entity';
 import { RolesModule } from '../roles/roles.module';
 import { Users } from './entities/users.entity';
@@ -17,10 +17,10 @@ import { UsersController } from './users.controller';
 @Module({
     imports: [
         DatabaseModule,
-        DatabaseModule.forFeature([Users, Files, Roles]),
+        DatabaseModule.forFeature([Users, Media, Roles]),
         ConfigModule,
         RolesModule,
-        CloudinaryModule,
+        MediaModule,
         PasswordHashModule,
         MailerModule,
     ],

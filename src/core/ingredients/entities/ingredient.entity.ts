@@ -18,16 +18,16 @@ export class Ingredient extends AbstractEntity<Ingredient> {
     category: string;
 
     @Column({ nullable: false, default: 'unit' })
-    unit: string;
+    defaultUnit: string;
 
     @Column({ type: 'int', default: 0 })
-    averagePriceFcfa: number;
+    estimatedPriceXof: number;
 
     @Column({ nullable: true })
     imageUrl: string;
 
-    @Column({ type: 'simple-array', nullable: true })
-    aliases: string[];
+    @Column({ type: 'jsonb', nullable: true })
+    localNames: Record<string, string>;
 
     @Column({ default: false })
     isCommon: boolean;

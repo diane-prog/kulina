@@ -4,6 +4,7 @@ import {
     IsBoolean,
     IsNotEmpty,
     IsNumber,
+    IsObject,
     IsOptional,
     IsString,
     IsUUID,
@@ -34,6 +35,11 @@ export class RecipeIngredientDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsBoolean({ message: 'isOptional must be a boolean' })
-    isOptional?: boolean;
+    @IsBoolean({ message: 'optional must be a boolean' })
+    optional?: boolean;
+
+    @ApiProperty({ required: false, type: Object })
+    @IsOptional()
+    @IsObject({ message: 'Substitutes must be an object' })
+    substitutes?: Record<string, string>;
 }

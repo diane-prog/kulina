@@ -1,22 +1,28 @@
 import { Exclude } from 'class-transformer';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Plan } from '../../../common/enum/plan.enum';
 import { SkillLevel, UserStatus } from '../../../common/enum/user.enum';
 import { AbstractEntity } from '../../../libs/database/abstract.entity';
-import { Files } from '../../cloudinary/entities/file.entity';
+import { Media } from '../../media/entities/media.entity';
 import { Roles } from '../../roles/entities/roles.entity';
 
 @Entity('users')
+@Check('"email" IS NOT NULL OR "phone" IS NOT NULL')
 export class Users extends AbstractEntity<Users> {
     @Column({ nullable: false })
     fullname: string;
 
     @Index()
-    @Column({ unique: true, nullable: false })
+    @Column({ unique: true, nullable: true })
     email: string;
 
-    @ManyToOne(() => Files, { eager: false, nullable: true })
+    @Index()
+    @Column({ unique: true, nullable: true })
+    phone: string;
+
+    @ManyToOne(() => Media, { eager: false, nullable: true })
     @JoinColumn({ name: 'avatarId' })
-    avatar: Files;
+    avatar: Media;
 
     @Column({ nullable: true })
     bio: string;
@@ -27,8 +33,11 @@ export class Users extends AbstractEntity<Users> {
     @Column({ nullable: true })
     city: string;
 
-    @Column({ nullable: true })
-    preferredCuisine: string;
+    @Column({ nullable: false, default: 'fr' })
+    locale: string;
+
+    @Column({ type: 'simple-array', nullable: true })
+    preferredCategories: string[];
 
     @Column({
         type: 'enum',
@@ -39,7 +48,7 @@ export class Users extends AbstractEntity<Users> {
     skillLevel: SkillLevel;
 
     @Column({ type: 'int', default: 0 })
-    monthlyBudgetFcfa: number;
+    monthlyBudgetXof: number;
 
     @Column({ type: 'simple-array', nullable: true })
     dietaryPreferences: string[];
@@ -56,7 +65,18 @@ export class Users extends AbstractEntity<Users> {
 
     @Exclude()
     @Column({ nullable: true })
-    password: string;
+    passwordHash: string;
+
+    @Column({
+        type: 'enum',
+        enum: Plan,
+        default: Plan.FREE,
+        nullable: false,
+    })
+    plan: Plan;
+
+    @Column({ type: 'timestamp', nullable: true })
+    premiumUntil: Date;
 
     @Column({ nullable: false, default: 0 })
     points: number;

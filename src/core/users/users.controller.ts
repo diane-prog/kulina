@@ -6,7 +6,6 @@ import {
     Param,
     ParseUUIDPipe,
     Patch,
-    Post,
     Query,
     UseGuards,
 } from '@nestjs/common';
@@ -15,17 +14,12 @@ import {
     AuthenticatedUser,
     CurrentUser,
 } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
 import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { BulkUpdateAuthorizedDto } from './dto/bulk-update-authorized.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { LoginUserDto } from './dto/login.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
-import { RegisterUserDto } from './dto/register.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './services/users.service';
@@ -34,34 +28,6 @@ import { UsersService } from './services/users.service';
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
-
-    @Public()
-    @Post('register')
-    @ApiOperation({ summary: 'Register a new Kulina member' })
-    register(@Body() dto: RegisterUserDto) {
-        return this.usersService.register(dto);
-    }
-
-    @Public()
-    @Post('login')
-    @ApiOperation({ summary: 'Log in with email and password' })
-    login(@Body() dto: LoginUserDto) {
-        return this.usersService.login(dto);
-    }
-
-    @Public()
-    @Post('forgot-password')
-    @ApiOperation({ summary: 'Request a password reset link' })
-    forgotPassword(@Body() dto: ForgotPasswordDto) {
-        return this.usersService.forgotPassword(dto);
-    }
-
-    @Public()
-    @Post('reset-password')
-    @ApiOperation({ summary: 'Reset a password with a reset token' })
-    resetPassword(@Body() dto: ResetPasswordDto) {
-        return this.usersService.resetPassword(dto);
-    }
 
     @ApiBearerAuth('JWT')
     @UseGuards(JwtAuthGuard)

@@ -20,9 +20,9 @@ export class SearchByIngredientsDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Maximum budget must be an integer' })
+    @IsInt({ message: 'Budget must be an integer' })
     @Min(0)
-    maxBudgetFcfa?: number;
+    budgetXof?: number;
 
     @ApiProperty({ required: false, default: 10 })
     @IsOptional()

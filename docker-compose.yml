@@ -1,0 +1,57 @@
+services:
+    postgres:
+        image: postgres:17-alpine
+        environment:
+            POSTGRES_DB: kulina
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        ports:
+            - '5432:5432'
+        volumes:
+            - kulina-postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U postgres -d kulina']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis:
+        image: redis:7-alpine
+        ports:
+            - '6379:6379'
+        volumes:
+            - kulina-redis:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    api:
+        build: .
+        env_file:
+            - .env
+        environment:
+            DB_HOST: postgres
+            DB_PORT: 5432
+            DB_NAME: kulina
+            DB_USER: postgres
+            DB_PASSWORD: postgres
+            REDIS_URL: redis://redis:6379
+            PORT: 3000
+        ports:
+            - '3000:3000'
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD-SHELL', 'wget --spider -q http://localhost:3000/ping || exit 1']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+volumes:
+    kulina-postgres:
+    kulina-redis:

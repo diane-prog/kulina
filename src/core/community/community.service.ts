@@ -451,7 +451,7 @@ export class CommunityService {
                 ? {
                       id: post.author.id,
                       fullname: post.author.fullname,
-                      avatar: post.author.avatar?.path ?? null,
+                      avatar: post.author.avatar?.url ?? null,
                   }
                 : null,
             recipe: post.recipe
@@ -491,7 +491,7 @@ export class CommunityService {
                 ? {
                       id: comment.author.id,
                       fullname: comment.author.fullname,
-                      avatar: comment.author.avatar?.path ?? null,
+                      avatar: comment.author.avatar?.url ?? null,
                   }
                 : null,
             createdAt: comment.createdAt,

@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-    IsArray,
     IsBoolean,
     IsInt,
+    IsObject,
     IsOptional,
     IsString,
     Min,
@@ -22,15 +22,15 @@ export class UpdateIngredientDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsString({ message: 'Unit must be a string' })
-    unit?: string;
+    @IsString({ message: 'Default unit must be a string' })
+    defaultUnit?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()
     @Type(() => Number)
-    @IsInt({ message: 'Average price must be an integer' })
-    @Min(0, { message: 'Average price cannot be negative' })
-    averagePriceFcfa?: number;
+    @IsInt({ message: 'Estimated price must be an integer' })
+    @Min(0)
+    estimatedPriceXof?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -42,11 +42,10 @@ export class UpdateIngredientDto {
     @IsString({ message: 'Image URL must be a string' })
     imageUrl?: string;
 
-    @ApiProperty({ type: [String], required: false })
+    @ApiProperty({ required: false, type: Object })
     @IsOptional()
-    @IsArray({ message: 'Aliases must be an array' })
-    @IsString({ each: true })
-    aliases?: string[];
+    @IsObject({ message: 'Local names must be an object' })
+    localNames?: Record<string, string>;
 
     @ApiProperty({ required: false })
     @IsOptional()

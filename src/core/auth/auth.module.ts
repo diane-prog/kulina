@@ -1,0 +1,21 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from '../../libs/database/database.module';
+import { UsersModule } from '../users/users.module';
+import { AuthController } from './auth.controller';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { RefreshTokensRepository } from './repositories/refresh-tokens.repository';
+import { TokenService } from './services/token.service';
+
+@Module({
+    imports: [
+        DatabaseModule,
+        DatabaseModule.forFeature([RefreshToken]),
+        ConfigModule,
+        UsersModule,
+    ],
+    controllers: [AuthController],
+    providers: [TokenService, RefreshTokensRepository],
+    exports: [TokenService],
+})
+export class AuthModule {}

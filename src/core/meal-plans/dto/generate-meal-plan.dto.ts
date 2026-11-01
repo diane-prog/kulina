@@ -3,12 +3,14 @@ import { Type } from 'class-transformer';
 import {
     IsBoolean,
     IsDateString,
+    IsEnum,
     IsInt,
     IsNotEmpty,
     IsOptional,
-    IsUUID,
+    IsString,
     Min,
 } from 'class-validator';
+import { Country } from '../../../common/enum/country.enum';
 
 export class GenerateMealPlanDto {
     @ApiProperty({ example: '2026-11-02' })
@@ -39,8 +41,13 @@ export class GenerateMealPlanDto {
     @IsBoolean({ message: 'includeDinner must be a boolean' })
     includeDinner?: boolean;
 
+    @ApiProperty({ enum: Country, required: false })
+    @IsOptional()
+    @IsEnum(Country, { message: 'Country is not valid' })
+    country?: Country;
+
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Cuisine id must be a valid UUID' })
-    cuisineId?: string;
+    @IsString({ message: 'Category must be a string' })
+    category?: string;
 }

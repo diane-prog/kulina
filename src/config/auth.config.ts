@@ -2,7 +2,15 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('auth', () => ({
     jwtSecret: process.env.JWT_SECRET ?? 'kulina-development-secret',
-    jwtExpirationTime: process.env.JWT_EXPIRATION_TIME ?? '7d',
+    jwtRefreshSecret:
+        process.env.JWT_REFRESH_SECRET ??
+        process.env.JWT_SECRET ??
+        'kulina-development-refresh-secret',
+    jwtAccessExpirationTime:
+        process.env.JWT_ACCESS_EXPIRATION_TIME ??
+        process.env.JWT_EXPIRATION_TIME ??
+        '15m',
+    jwtRefreshExpirationTime: process.env.JWT_REFRESH_EXPIRATION_TIME ?? '30d',
     resetPasswordExpirationTime:
         process.env.RESET_PASSWORD_EXPIRATION_TIME ?? '30m',
     resetPasswordLink:

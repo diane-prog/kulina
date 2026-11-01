@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Country } from '../../../common/enum/country.enum';
 import { SkillLevel } from '../../../common/enum/user.enum';
 import { AbstractEntity } from '../../../libs/database/abstract.entity';
-import { Cuisine } from '../../cuisines/entities/cuisine.entity';
 import { Users } from '../../users/entities/users.entity';
 
 @Entity('tutorials')
@@ -32,9 +32,15 @@ export class Tutorial extends AbstractEntity<Tutorial> {
     })
     level: SkillLevel;
 
-    @ManyToOne(() => Cuisine, { eager: false, nullable: true })
-    @JoinColumn({ name: 'cuisineId' })
-    cuisine: Cuisine;
+    @Column({
+        type: 'enum',
+        enum: Country,
+        default: Country.BOTH,
+    })
+    country: Country;
+
+    @Column({ nullable: true })
+    category: string;
 
     @ManyToOne(() => Users, { eager: false, nullable: false })
     @JoinColumn({ name: 'authorId' })

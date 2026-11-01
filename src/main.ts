@@ -14,6 +14,8 @@ import { allSeeder } from './common/seeder/seeders';
 import { buildCorsOptions } from './helpers/cors.config';
 import { createSwaggerConfig } from './helpers/api_documentation/documentation.config';
 import { createRedocConfig } from './helpers/api_documentation/redoc.config';
+import { RedisIoAdapter } from './helpers/websocket/redis-io.adapter';
+import { RedisService } from './libs/redis/redis.service';
 
 /**
  * Boots the Kulina API.
@@ -27,7 +29,12 @@ async function bootstrap(): Promise<void> {
     app.use(helmet());
     app.enableCors(buildCorsOptions(env));
     app.setGlobalPrefix('api/v1', { exclude: ['/ping'] });
-    app.useWebSocketAdapter(new IoAdapter(app));
+    const redisService = app.get(RedisService);
+    app.useWebSocketAdapter(
+        redisService.isEnabled()
+            ? new RedisIoAdapter(app, redisService)
+            : new IoAdapter(app),
+    );
     app.useGlobalPipes(new CustomValidationPipe());
 
     const reflector = app.get(Reflector);

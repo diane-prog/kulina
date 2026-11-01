@@ -6,6 +6,7 @@ import {
     IsInt,
     IsOptional,
     IsString,
+    Matches,
     IsUUID,
     Min,
     MinLength,
@@ -18,6 +19,11 @@ export class UpdateProfileDto {
     @IsString({ message: 'Fullname must be a string' })
     @MinLength(2, { message: 'Fullname must be at least 2 characters' })
     fullname?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @Matches(/^\+?[0-9\s-]{8,20}$/, { message: 'Phone number is not valid' })
+    phone?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -36,8 +42,14 @@ export class UpdateProfileDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsString({ message: 'Preferred cuisine must be a string' })
-    preferredCuisine?: string;
+    @IsString({ message: 'Locale must be a string' })
+    locale?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsArray({ message: 'Preferred categories must be an array' })
+    @IsString({ each: true })
+    preferredCategories?: string[];
 
     @ApiProperty({ enum: SkillLevel, required: false })
     @IsOptional()
@@ -49,7 +61,7 @@ export class UpdateProfileDto {
     @Type(() => Number)
     @IsInt({ message: 'Monthly budget must be an integer' })
     @Min(0, { message: 'Monthly budget cannot be negative' })
-    monthlyBudgetFcfa?: number;
+    monthlyBudgetXof?: number;
 
     @ApiProperty({ required: false })
     @IsOptional()

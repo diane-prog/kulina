@@ -56,7 +56,7 @@ export class RecipesController {
     }
 
     @Public()
-    @Post('search/by-ingredients')
+    @Post('search-by-ingredients')
     @ApiOperation({ summary: 'Find recipes from the ingredients you have' })
     searchByIngredients(@Body() dto: SearchByIngredientsDto) {
         return this.recipesService.searchByIngredients(dto);
@@ -72,11 +72,11 @@ export class RecipesController {
     }
 
     @Public()
-    @Get(':id')
-    @ApiOperation({ summary: 'Get a recipe detail' })
-    async findOne(@Param('id', ParseUUIDPipe) id: string) {
-        const recipe = await this.recipesService.findOne(id);
-        await this.recipesService.incrementViewCount(id);
+    @Get(':slug')
+    @ApiOperation({ summary: 'Get a recipe detail by slug' })
+    async findBySlug(@Param('slug') slug: string) {
+        const recipe = await this.recipesService.findBySlug(slug);
+        await this.recipesService.incrementViewCount(recipe.id);
 
         return recipe;
     }
@@ -113,7 +113,7 @@ export class RecipesController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @RequireRoles('super_admin', 'admin', 'contributor')
     @Patch(':id/status')
-    @ApiOperation({ summary: 'Publish or archive a recipe' })
+    @ApiOperation({ summary: 'Publish, review, or archive a recipe' })
     updateStatus(
         @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateRecipeStatusDto,

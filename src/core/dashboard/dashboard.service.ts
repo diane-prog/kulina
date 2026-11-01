@@ -59,7 +59,7 @@ export class DashboardService {
                 ratingAverage: recipe.ratingAverage,
                 favoriteCount: recipe.favoriteCount,
                 viewCount: recipe.viewCount,
-                budgetFcfa: recipe.budgetFcfa,
+                estimatedBudgetXof: recipe.estimatedBudgetXof,
             }));
 
         const latestUsers = [...users]

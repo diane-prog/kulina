@@ -8,10 +8,10 @@ import {
     IsNotEmpty,
     IsOptional,
     IsString,
-    IsUUID,
     Min,
     MinLength,
 } from 'class-validator';
+import { Country } from '../../../common/enum/country.enum';
 import { SkillLevel } from '../../../common/enum/user.enum';
 
 export class CreateTutorialDto {
@@ -48,10 +48,15 @@ export class CreateTutorialDto {
     @IsEnum(SkillLevel, { message: 'Level is not valid' })
     level?: SkillLevel;
 
+    @ApiProperty({ enum: Country, required: false })
+    @IsOptional()
+    @IsEnum(Country, { message: 'Country is not valid' })
+    country?: Country;
+
     @ApiProperty({ required: false })
     @IsOptional()
-    @IsUUID('4', { message: 'Cuisine id must be a valid UUID' })
-    cuisineId?: string;
+    @IsString({ message: 'Category must be a string' })
+    category?: string;
 
     @ApiProperty({ type: [String], required: false })
     @IsOptional()

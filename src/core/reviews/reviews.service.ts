@@ -221,7 +221,7 @@ export class ReviewsService {
                 ? {
                       id: review.user.id,
                       fullname: review.user.fullname,
-                      avatar: review.user.avatar?.path ?? null,
+                      avatar: review.user.avatar?.url ?? null,
                   }
                 : null,
             recipe: review.recipe

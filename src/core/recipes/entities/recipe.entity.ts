@@ -6,16 +6,17 @@ import {
     ManyToOne,
     OneToMany,
 } from 'typeorm';
+import { Country } from '../../../common/enum/country.enum';
 import { Difficulty, RecipeStatus } from '../../../common/enum/recipe.enum';
 import { AbstractEntity } from '../../../libs/database/abstract.entity';
-import { Cuisine } from '../../cuisines/entities/cuisine.entity';
-import { RecipeCategory } from '../../recipe-categories/entities/recipe-category.entity';
 import { Users } from '../../users/entities/users.entity';
 import { RecipeIngredient } from './recipe-ingredient.entity';
+import { RecipeIssue } from './recipe-issue.entity';
 import { RecipeStep } from './recipe-step.entity';
 import { RecipeTip } from './recipe-tip.entity';
 
 @Entity('recipes')
+@Index(['country', 'category', 'status'])
 export class Recipe extends AbstractEntity<Recipe> {
     @Column({ nullable: false })
     title: string;
@@ -28,19 +29,16 @@ export class Recipe extends AbstractEntity<Recipe> {
     description: string;
 
     @Column({ nullable: true })
-    imageUrl: string;
-
-    @Column({ nullable: true })
-    videoUrl: string;
+    coverImageUrl: string;
 
     @Column({ type: 'int', default: 0 })
-    prepTimeMinutes: number;
+    prepMinutes: number;
 
     @Column({ type: 'int', default: 0 })
-    cookTimeMinutes: number;
+    cookMinutes: number;
 
     @Column({ type: 'int', default: 1 })
-    servings: number;
+    baseServings: number;
 
     @Column({
         type: 'enum',
@@ -49,23 +47,27 @@ export class Recipe extends AbstractEntity<Recipe> {
     })
     difficulty: Difficulty;
 
-    @ManyToOne(() => Cuisine, { eager: false, nullable: true })
-    @JoinColumn({ name: 'cuisineId' })
-    cuisine: Cuisine;
+    @Column({
+        type: 'enum',
+        enum: Country,
+        default: Country.BOTH,
+    })
+    @Index()
+    country: Country;
 
-    @ManyToOne(() => RecipeCategory, { eager: false, nullable: true })
-    @JoinColumn({ name: 'categoryId' })
-    category: RecipeCategory;
+    @Column({ nullable: true })
+    @Index()
+    category: string;
 
-    @ManyToOne(() => Users, { eager: false, nullable: false })
+    @ManyToOne(() => Users, { eager: false, nullable: true })
     @JoinColumn({ name: 'authorId' })
     author: Users;
 
     @Column({ type: 'int', default: 0 })
-    budgetFcfa: number;
+    estimatedBudgetXof: number;
 
     @Column({ type: 'int', default: 0 })
-    costPerServingFcfa: number;
+    costPerServingXof: number;
 
     @Column({
         type: 'enum',
@@ -73,6 +75,9 @@ export class Recipe extends AbstractEntity<Recipe> {
         default: RecipeStatus.DRAFT,
     })
     status: RecipeStatus;
+
+    @Column({ default: false })
+    isPremium: boolean;
 
     @Column({ default: false })
     isFeatured: boolean;
@@ -105,4 +110,7 @@ export class Recipe extends AbstractEntity<Recipe> {
 
     @OneToMany(() => RecipeTip, (tip) => tip.recipe, { cascade: true })
     tips: RecipeTip[];
+
+    @OneToMany(() => RecipeIssue, (issue) => issue.recipe, { cascade: true })
+    issues: RecipeIssue[];
 }

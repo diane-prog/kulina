@@ -48,11 +48,12 @@ The application follows the same modular NestJS architecture as the `finanxbk` r
 - **`src/core/`** - Business domain modules
     - Each module contains: `entities/`, `dto/`, `repositories/`, `services/`
     - Standard pattern: `{name}.module.ts`, `{name}.controller.ts`, `{name}.service.ts`
-    - Main domains: users, roles, cloudinary, cuisines, recipe-categories, ingredients, recipes, reviews, favorites, tutorials, cooking, meal-plans, shopping-lists, community, budgets, assistant, search, dashboard
+    - Main domains: auth, users, roles, media, ingredients, recipes, sessions, chat, ai, subscriptions, admin, reviews, favorites, tutorials, meal-plans, shopping-lists, community, budgets, search, dashboard
 
 - **`src/libs/`** - Infrastructure and shared libraries
     - `database/` - TypeORM configuration with `AbstractEntity` and `AbstractRepository`
     - `cache/` - In-memory cache with TTL
+    - `redis/` - Redis cache, quotas, and locks with in-memory fallback
     - `mailer/` - Nodemailer wrapper (safe no-op when SMTP is not configured)
 
 - **`src/helpers/`** - Cross-cutting helpers
@@ -131,7 +132,10 @@ Successful REST responses are wrapped by `ResponseInterceptor`:
 - `DB_SYNC` - TypeORM synchronize flag
 - `JWT_SECRET`, `JWT_EXPIRATION_TIME` - JWT configuration
 - `ENABLE_SWAGGER` - Toggle API docs
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` - File storage
+- `JWT_SECRET`, `JWT_REFRESH_SECRET` - Access and refresh token secrets
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` - Media storage
+- `REDIS_URL` - Redis cache, quotas, and locks
+- `GEMINI_API_KEY` - Gemini AI assistant
 
 ## Workflow Orchestration & Task Management
 

@@ -6,6 +6,7 @@ export enum Difficulty {
 
 export enum RecipeStatus {
     DRAFT = 'draft',
+    REVIEW = 'review',
     PUBLISHED = 'published',
     ARCHIVED = 'archived',
 }
