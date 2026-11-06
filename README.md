@@ -10,7 +10,7 @@ Chef en poche is the Kulina API for Benin and Togo. It helps complete beginners 
 - Premium AI assistant with rules-first answers, Gemini fallback, quotas, and photo checks
 - Cloudinary signed uploads and media cleanup
 - Admin recipe import (YAML/JSON) and publish workflow
-- Free and premium plans with a Mobile Money payment scaffold
+- Free and premium plans with Mobile Money checkout providers and signed payment webhooks
 - Community, reviews, favorites, tutorials, meal plans, shopping lists, and budgets
 
 ## Stack
@@ -112,6 +112,7 @@ Files are uploaded under `kulina/<scope>` folders (`recipes`, `tutorials`, `avat
 - `POST /api/v1/sessions/:id/finish`
 - `POST /api/v1/sessions/:id/abandon`
 - `GET/POST /api/v1/sessions/:id/messages`
+- `GET /api/v1/sessions/:id/voice` (per-step narration script and audio URL)
 - `POST /api/v1/sessions/:id/photo-check` (premium)
 - `POST /api/v1/ai/chat` (premium fallback)
 - WebSocket namespace `/cooking`
@@ -127,13 +128,20 @@ Files are uploaded under `kulina/<scope>` folders (`recipes`, `tutorials`, `avat
 - `POST /api/v1/admin/recipes/import-bulk`
 - `PATCH /api/v1/admin/recipes/:id/publish`
 
-At startup, the **bouillie de riz** pilot recipe is seeded in `review` status. Validate it with a local cook, then publish it with the admin endpoint.
+At startup, the seeders create roles, ingredients, the **bouillie de riz** pilot recipe in `review` status, and a 50-recipe catalog (`src/core/admin/seeds/recipe-catalog.seed.ts`) published for Benin and Togo. The catalog seeding is idempotent and skips any recipe whose slug already exists. Validate recipes with a local cook and use the admin endpoints to grow the catalog to 200.
 
 ### Plans and payments
 
 - `GET /api/v1/plans`
 - `POST /api/v1/subscriptions/checkout`
 - `POST /api/v1/webhooks/payments`
+
+Checkout goes through the provider selected by `MOBILE_MONEY_PROVIDER`:
+
+- `manual` (default) — returns payment instructions and the shared reference; the webhook is accepted as-is unless `MOBILE_MONEY_WEBHOOK_SECRET` is set, in which case the `x-kulina-webhook-secret` header must match.
+- `http`, `mtn_momo`, `moov`, or `wave` — calls `MOBILE_MONEY_BASE_URL` + `MOBILE_MONEY_CHECKOUT_PATH` with `MOBILE_MONEY_API_KEY` and expects `reference` and `checkoutUrl` in the response. Webhooks must carry a valid HMAC SHA-256 signature in `x-kulina-signature` computed from `MOBILE_MONEY_WEBHOOK_SECRET` over the raw body.
+
+When a webhook is `paid`, the payment is marked as paid and the user plan becomes `premium` until the payment end date.
 
 ## Main modules
 

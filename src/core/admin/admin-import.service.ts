@@ -10,6 +10,7 @@ import { CreateRecipeDto } from '../recipes/dto/create-recipe.dto';
 import { RecipesRepository } from '../recipes/repositories/recipes.repository';
 import { RecipesService } from '../recipes/recipes.service';
 import { bouillieDeRizSeed } from './seeds/bouillie-de-riz.seed';
+import { recipeCatalogSeed } from './seeds/recipe-catalog.seed';
 
 @Injectable()
 export class AdminImportService {
@@ -60,7 +61,7 @@ export class AdminImportService {
      * @param input - Recipe input
      * @returns The imported recipe
      */
-    async importRecipe(input: any) {
+    async importRecipe(input: any, status: RecipeStatus = RecipeStatus.REVIEW) {
         if (!input.title) {
             throw new BadRequestException('Recipe title is required');
         }
@@ -95,7 +96,7 @@ export class AdminImportService {
             category: input.category,
             estimatedBudgetXof: input.estimatedBudgetXof ?? 0,
             tags: input.tags ?? [],
-            status: RecipeStatus.REVIEW,
+            status,
             ingredients,
             steps: (input.steps ?? []).map((step: any, index: number) => ({
                 position: step.position ?? index + 1,
@@ -142,6 +143,30 @@ export class AdminImportService {
         }
 
         return await this.importRecipe(bouillieDeRizSeed);
+    }
+
+    /**
+     * Seeds the 50-recipe demo catalog as published recipes.
+     *
+     * @returns The number of imported recipes
+     */
+    async seedCatalog(): Promise<number> {
+        let imported = 0;
+
+        for (const recipe of recipeCatalogSeed) {
+            const existing = await this.recipesRepository.findOne({
+                where: { slug: recipe.slug },
+            });
+
+            if (existing) {
+                continue;
+            }
+
+            await this.importRecipe(recipe, RecipeStatus.PUBLISHED);
+            imported += 1;
+        }
+
+        return imported;
     }
 
     /**

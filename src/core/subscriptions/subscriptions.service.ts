@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { Plan } from '../../common/enum/plan.enum';
@@ -6,8 +6,8 @@ import { PaymentStatus } from '../../common/enum/payment.enum';
 import { ErrorHandlingService } from '../../common/response/errorHandler.service';
 import { UsersRepository } from '../users/repositories/users.repository';
 import { CheckoutDto } from './dto/checkout.dto';
-import { PaymentWebhookDto } from './dto/payment-webhook.dto';
 import { Payment } from './entities/payment.entity';
+import { PaymentProviderFactory } from './providers/payment-provider.factory';
 import { PaymentsRepository } from './repositories/payments.repository';
 
 @Injectable()
@@ -17,6 +17,7 @@ export class SubscriptionsService {
         private readonly paymentsRepository: PaymentsRepository,
         private readonly usersRepository: UsersRepository,
         private readonly errorHandlingService: ErrorHandlingService,
+        private readonly paymentProviderFactory: PaymentProviderFactory,
     ) {}
 
     /**
@@ -56,13 +57,13 @@ export class SubscriptionsService {
     }
 
     /**
-     * Creates a payment intent for the premium plan.
+     * Creates a payment intent and a provider checkout.
      *
      * @param userId - User identifier
      * @param dto - Checkout payload
-     * @returns The created payment
+     * @returns The payment and provider checkout details
      */
-    async checkout(userId: string, dto: CheckoutDto): Promise<Payment> {
+    async checkout(userId: string, dto: CheckoutDto) {
         const amountXof =
             dto.amountXof ??
             Number.parseInt(
@@ -71,11 +72,15 @@ export class SubscriptionsService {
             );
         const startedAt = new Date();
         const endsAt = new Date(startedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const providerName =
+            dto.provider ??
+            this.configService.get<string>('MOBILE_MONEY_PROVIDER') ??
+            'manual';
 
-        return await this.paymentsRepository.create(
+        const payment = await this.paymentsRepository.create(
             new Payment({
                 user: { id: userId } as any,
-                provider: dto.provider ?? 'manual',
+                provider: providerName,
                 reference: randomUUID(),
                 amountXof,
                 status: PaymentStatus.PENDING,
@@ -83,33 +88,57 @@ export class SubscriptionsService {
                 endsAt,
             }),
         );
+
+        const provider = this.paymentProviderFactory.getProvider();
+        const checkout = await provider.createCheckout(payment);
+        const updated = await this.paymentsRepository.update(
+            { id: payment.id },
+            {
+                providerReference: checkout.providerReference,
+                checkoutUrl: checkout.paymentUrl,
+                instructions: checkout.instructions,
+            },
+        );
+
+        return { payment: updated, checkout };
     }
 
     /**
-     * Handles a payment webhook and upgrades the user when paid.
+     * Handles a provider webhook and upgrades the user when paid.
      *
-     * @param dto - Payment webhook payload
+     * @param headers - HTTP headers
+     * @param body - Webhook body
      * @returns The updated payment
      */
-    async handleWebhook(dto: PaymentWebhookDto): Promise<Payment> {
+    async handleWebhook(
+        headers: Record<string, any>,
+        body: any,
+    ): Promise<Payment> {
+        const provider = this.paymentProviderFactory.getProvider();
+
+        if (!provider.verifyWebhook(headers, body)) {
+            throw new ForbiddenException('Invalid payment webhook signature');
+        }
+
+        const parsed = provider.parseWebhook(body);
         const payment = await this.paymentsRepository.findOne({
-            where: { reference: dto.reference, deleted: false },
+            where: { reference: parsed.reference, deleted: false },
             relations: ['user'],
         });
 
         if (!payment) {
             this.errorHandlingService.returnErrorOnNotFound(
-                `Payment ${dto.reference} not found`,
+                `Payment ${parsed.reference} not found`,
                 'Payment not found',
             );
         }
 
         const updated = await this.paymentsRepository.update(
             { id: payment.id },
-            { status: dto.status },
+            { status: parsed.status },
         );
 
-        if (dto.status === PaymentStatus.PAID) {
+        if (parsed.status === PaymentStatus.PAID) {
             await this.usersRepository.update(
                 { id: payment.user.id },
                 {

@@ -32,4 +32,13 @@ export class Payment extends AbstractEntity<Payment> {
 
     @Column({ type: 'timestamp', nullable: true })
     endsAt: Date;
+
+    @Column({ nullable: true })
+    providerReference: string;
+
+    @Column({ type: 'text', nullable: true })
+    checkoutUrl: string;
+
+    @Column({ type: 'text', nullable: true })
+    instructions: string;
 }

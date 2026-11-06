@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Headers,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
     AuthenticatedUser,
@@ -7,7 +14,6 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/auth.guard';
 import { CheckoutDto } from './dto/checkout.dto';
-import { PaymentWebhookDto } from './dto/payment-webhook.dto';
 import { SubscriptionsService } from './subscriptions.service';
 
 @ApiTags('subscriptions')
@@ -33,7 +39,10 @@ export class SubscriptionsController {
     @Public()
     @Post('webhooks/payments')
     @ApiOperation({ summary: 'Handle a mobile money payment webhook' })
-    webhook(@Body() dto: PaymentWebhookDto) {
-        return this.subscriptionsService.handleWebhook(dto);
+    webhook(
+        @Headers() headers: Record<string, any>,
+        @Body() body: Record<string, any>,
+    ) {
+        return this.subscriptionsService.handleWebhook(headers, body);
     }
 }

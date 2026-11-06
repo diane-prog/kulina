@@ -9,6 +9,8 @@ export function toSlug(value: string): string {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
+        .replace(/œ/g, 'oe')
+        .replace(/æ/g, 'ae')
         .trim()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');

@@ -115,6 +115,16 @@ export class SessionsController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get(':id/voice')
+    @ApiOperation({ summary: 'Get the narration script for a session' })
+    voice(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseUUIDPipe) id: string,
+    ) {
+        return this.sessionsService.getVoiceScript(id, user.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get(':id/messages')
     @ApiOperation({ summary: 'List messages for a cooking session' })
     listMessages(

@@ -6,11 +6,12 @@ export class RecipesSeeder {
     constructor(private readonly adminImportService: AdminImportService) {}
 
     /**
-     * Seeds the pilot bouillie de riz recipe.
+     * Seeds the pilot bouillie de riz recipe and the 50-recipe catalog.
      *
-     * @returns A promise resolved when the recipe exists
+     * @returns A promise resolved when the recipes exist
      */
     async seed(): Promise<void> {
         await this.adminImportService.seedBouillieDeRiz();
+        await this.adminImportService.seedCatalog();
     }
 }

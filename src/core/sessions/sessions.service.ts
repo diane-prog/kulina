@@ -246,6 +246,33 @@ export class SessionsService {
     }
 
     /**
+     * Returns the voice script for a session's recipe.
+     *
+     * @param id - Session identifier
+     * @param userId - User identifier
+     * @returns The narration script per step
+     */
+    async getVoiceScript(id: string, userId: string) {
+        const session = await this.retrieveSession(id, userId);
+        const recipe = await this.recipesService.findOne(
+            session.recipe.id,
+            true,
+        );
+
+        return {
+            sessionId: session.id,
+            recipeId: recipe.id,
+            title: recipe.title,
+            steps: (recipe.steps ?? []).map((step: any) => ({
+                position: step.position,
+                title: step.title,
+                narrationText: step.narrationText ?? step.instruction,
+                audioUrl: step.audioUrl ?? null,
+            })),
+        };
+    }
+
+    /**
      * Lists messages for a session.
      *
      * @param id - Session identifier

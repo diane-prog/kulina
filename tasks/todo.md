@@ -34,7 +34,10 @@ Build the NestJS backend for Chef en poche (Benin + Togo), following the `finanx
 
 - [x] `admin` module: recipe import (YAML/JSON), publish
 - [x] Bouillie de riz pilot recipe seeded in review status
-- [x] `subscriptions` module: plans, checkout, payment webhook scaffold
+- [x] `subscriptions` module: plans, checkout, signed payment webhooks
+- [x] 50-recipe catalog seeded as published and idempotent (`seeds/recipe-catalog.seed.ts`)
+- [x] Mobile Money provider abstraction: `manual` plus generic HTTP provider (MTN MoMo, Moov, Wave) with HMAC SHA-256 webhooks
+- [x] Voice script endpoint `GET /sessions/:id/voice` backed by `RecipeStep.narrationText`/`audioUrl`
 - [x] README, CLAUDE.md, .env.example, Dockerfile
 - [x] pg_trgm migration and TypeORM data source
 
@@ -43,9 +46,13 @@ Build the NestJS backend for Chef en poche (Benin + Togo), following the `finanx
 - [x] `pnpm install`
 - [x] `pnpm run build`
 - [x] `pnpm run lint`
-- [x] `pnpm run test` (23 tests)
+- [x] `pnpm run test` (29 tests)
 - [x] `pnpm run test:e2e` (1 test)
 - [x] Temporary PostgreSQL integration test: app boot, seeders, phone register/login/refresh, admin publish, public recipe, media sign, session creation, messages, AI rules-first
+- [x] 50-recipe catalog seeded and publicly listed (50 published + 1 review)
+- [x] Checkout with the `manual` provider returns instructions and a reference; a `paid` webhook upgrades the user to `premium` until `premiumUntil`
+- [x] Voice endpoint returns one narration entry per recipe step
+- [x] Two consecutive boots against the same database leave the recipe counts unchanged (seed idempotency)
 
 ## Review
 
@@ -70,15 +77,19 @@ Build the NestJS backend for Chef en poche (Benin + Togo), following the `finanx
 - Cloudinary optimized delivery URLs use `f_auto,q_auto,w_600`.
 - `recipe_steps(recipeId, position)` index and `pg_trgm` migration exist; ingredient/issue searches use `ILIKE` with pg_trgm-compatible indexes.
 - Docker Compose (API, PostgreSQL, Redis) and GitHub Actions CI are present.
+- The seeded catalog exposes 50 published recipes for BJ/TG, and every seed slug matches the slug generated from its title (including `Œufs brouillés` → `oeufs-brouilles`).
+- Manual Mobile Money checkout and the signed webhook flow were exercised end to end through HTTP.
+- `GET /sessions/:id/voice` returns `narrationText` for each step and falls back to the step instruction when no narration is authored.
+- The 50-recipe catalog is idempotent across restarts.
 
 ### Remaining next steps
 
 - Add server-side TTS or keep voice on the client with `expo-speech`.
 - Generate and run full schema migrations before production.
 - Add real Gemini and real Redis/BullMQ smoke tests once infrastructure is available.
-- Populate the 50/200 recipes content.
+- Grow the catalog from 50 to 200 recipes and have local cooks validate them.
 - Build the Next.js and React Native frontends.
-- Integrate a real Mobile Money provider.
+- Connect real Mobile Money credentials (MTN MoMo, Moov, or Wave) and test against the provider sandbox.
 
 ### How to finish the remaining work
 
@@ -124,4 +135,4 @@ Build the Next.js web app and the React Native Expo app in separate repositories
 
 ### Final status
 
-Backend MVP for Chef en poche is functional, tested, and close to the technical dossier. Frontends, content, real Mobile Money, and voice remain outside this backend scope.
+The backend MVP for Chef en poche is functional and tested: 50 seeded recipes, guided sessions, rules-first AI, Mobile Money checkout with signed webhooks, and a voice narration endpoint. Frontends, the remaining 150 recipes, real provider credentials, and client-side speech synthesis remain outside this backend scope.
