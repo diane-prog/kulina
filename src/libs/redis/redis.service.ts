@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -9,6 +9,7 @@ interface MemoryEntry {
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
+    private readonly logger = new Logger(RedisService.name);
     private readonly client: Redis | null;
     private readonly memory = new Map<string, MemoryEntry>();
 
@@ -17,12 +18,18 @@ export class RedisService implements OnModuleDestroy {
         this.client = url
             ? new Redis(url, {
                   lazyConnect: true,
-                  maxRetriesPerRequest: 1,
+                  maxRetriesPerRequest: null,
+                  enableOfflineQueue: false,
               })
             : null;
 
         if (this.client) {
-            this.client.connect().catch(() => undefined);
+            this.client.on('error', (err) => {
+                this.logger.warn(`Redis connection error: ${err.message}`);
+            });
+            this.client.connect().catch((err) => {
+                this.logger.warn(`Failed to connect to Redis: ${err.message}`);
+            });
         }
     }
 
@@ -43,7 +50,11 @@ export class RedisService implements OnModuleDestroy {
      */
     async get(key: string): Promise<string | null> {
         if (this.client) {
-            return await this.client.get(key);
+            try {
+                return await this.client.get(key);
+            } catch {
+                // Fallback to memory
+            }
         }
 
         const entry = this.memory.get(key);
@@ -65,13 +76,17 @@ export class RedisService implements OnModuleDestroy {
      */
     async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
         if (this.client) {
-            if (ttlSeconds) {
-                await this.client.set(key, value, 'EX', ttlSeconds);
-                return;
-            }
+            try {
+                if (ttlSeconds) {
+                    await this.client.set(key, value, 'EX', ttlSeconds);
+                    return;
+                }
 
-            await this.client.set(key, value);
-            return;
+                await this.client.set(key, value);
+                return;
+            } catch {
+                // Fallback to memory
+            }
         }
 
         this.memory.set(key, {
@@ -87,8 +102,12 @@ export class RedisService implements OnModuleDestroy {
      */
     async del(key: string): Promise<void> {
         if (this.client) {
-            await this.client.del(key);
-            return;
+            try {
+                await this.client.del(key);
+                return;
+            } catch {
+                // Fallback to memory
+            }
         }
 
         this.memory.delete(key);
@@ -107,11 +126,15 @@ export class RedisService implements OnModuleDestroy {
         ttlSeconds?: number,
     ): Promise<void> {
         if (this.client) {
-            await this.client.hset(key, values);
-            if (ttlSeconds) {
-                await this.client.expire(key, ttlSeconds);
+            try {
+                await this.client.hset(key, values);
+                if (ttlSeconds) {
+                    await this.client.expire(key, ttlSeconds);
+                }
+                return;
+            } catch {
+                // Fallback to memory
             }
-            return;
         }
 
         await this.set(key, JSON.stringify(values), ttlSeconds);
@@ -125,7 +148,11 @@ export class RedisService implements OnModuleDestroy {
      */
     async hgetall(key: string): Promise<Record<string, string>> {
         if (this.client) {
-            return await this.client.hgetall(key);
+            try {
+                return await this.client.hgetall(key);
+            } catch {
+                // Fallback to memory
+            }
         }
 
         const raw = await this.get(key);
@@ -140,8 +167,12 @@ export class RedisService implements OnModuleDestroy {
      */
     async expire(key: string, ttlSeconds: number): Promise<void> {
         if (this.client) {
-            await this.client.expire(key, ttlSeconds);
-            return;
+            try {
+                await this.client.expire(key, ttlSeconds);
+                return;
+            } catch {
+                // Fallback to memory
+            }
         }
 
         const entry = this.memory.get(key);
@@ -177,7 +208,25 @@ export class RedisService implements OnModuleDestroy {
      * @returns A duplicated Redis client or null
      */
     duplicate(): Redis | null {
-        return this.client ? this.client.duplicate() : null;
+        if (!this.client) {
+            return null;
+        }
+
+        const dup = this.client.duplicate({
+            lazyConnect: true,
+            maxRetriesPerRequest: null,
+            enableOfflineQueue: false,
+        });
+
+        dup.on('error', (err) => {
+            this.logger.warn(`Redis duplicate client error: ${err.message}`);
+        });
+
+        dup.connect().catch((err) => {
+            this.logger.warn(`Failed to connect Redis duplicate: ${err.message}`);
+        });
+
+        return dup;
     }
 
     /**
@@ -189,13 +238,17 @@ export class RedisService implements OnModuleDestroy {
      */
     async incr(key: string, ttlSeconds: number): Promise<number> {
         if (this.client) {
-            const value = await this.client.incr(key);
+            try {
+                const value = await this.client.incr(key);
 
-            if (value === 1) {
-                await this.client.expire(key, ttlSeconds);
+                if (value === 1) {
+                    await this.client.expire(key, ttlSeconds);
+                }
+
+                return value;
+            } catch {
+                // Fallback to memory
             }
-
-            return value;
         }
 
         const current = Number.parseInt((await this.get(key)) ?? '0', 10);
@@ -221,14 +274,18 @@ export class RedisService implements OnModuleDestroy {
      */
     async lock(key: string, ttlSeconds: number): Promise<boolean> {
         if (this.client) {
-            const result = await this.client.set(
-                key,
-                '1',
-                'EX',
-                ttlSeconds,
-                'NX',
-            );
-            return result === 'OK';
+            try {
+                const result = await this.client.set(
+                    key,
+                    '1',
+                    'EX',
+                    ttlSeconds,
+                    'NX',
+                );
+                return result === 'OK';
+            } catch {
+                // Fallback to memory
+            }
         }
 
         if (await this.get(key)) {

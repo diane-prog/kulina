@@ -25,7 +25,11 @@ export class RedisIoAdapter extends IoAdapter {
         const subscriber = this.redisService.duplicate();
 
         if (publisher && subscriber) {
-            server.adapter(createAdapter(publisher, subscriber));
+            try {
+                server.adapter(createAdapter(publisher, subscriber));
+            } catch {
+                // Keep default in-memory adapter
+            }
         }
 
         return server;
