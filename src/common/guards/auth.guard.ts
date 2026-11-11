@@ -37,11 +37,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
      *
      * @param err - Passport error
      * @param user - Authenticated user
+     * @param info - Passport extra info (e.g. jwt expired)
      * @returns The authenticated user
      */
-    handleRequest(err: any, user: any) {
+    handleRequest(err: any, user: any, info?: any) {
         if (err || !user) {
-            throw err || new UnauthorizedException('User not found!');
+            const message = info?.message
+                ? `Unauthorized: ${info.message}`
+                : 'Unauthorized: User not found or invalid token';
+            throw err || new UnauthorizedException(message);
         }
 
         return user;
