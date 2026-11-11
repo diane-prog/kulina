@@ -11,8 +11,15 @@ describe('AiService', () => {
     let mockRecipeIssuesRepository: any;
     let mockUsersRepository: any;
     let mockRedisService: any;
+    let mockConfigService: any;
 
     beforeEach(() => {
+        mockConfigService = {
+            get: jest.fn().mockImplementation((key: string) => {
+                if (key === 'app.allFeaturesFree') return false;
+                return undefined;
+            }),
+        };
         mockGeminiService = {
             generateJson: jest.fn(),
             generateTextStream: jest.fn(),
@@ -67,9 +74,7 @@ describe('AiService', () => {
         };
 
         service = new AiService(
-            {
-                get: jest.fn(),
-            } as any,
+            mockConfigService as any,
             mockGeminiService,
             mockQuotaService,
             mockIssueMatcherService,
@@ -116,6 +121,33 @@ describe('AiService', () => {
             await expect(
                 service.chat('session-1', 'user-1', 'Hello'),
             ).rejects.toThrow('premium');
+        });
+
+        it('should allow free users when allFeaturesFree is enabled', async () => {
+            mockConfigService.get.mockReturnValue(true);
+            mockUsersRepository.findOne.mockResolvedValue({
+                id: 'user-1',
+                plan: Plan.FREE,
+                premiumUntil: null,
+            });
+            const issue = {
+                symptom: 'Trop épaisse',
+                fix: "Ajoute de l'eau chaude.",
+                severity: 'low',
+            };
+            mockRecipeIssuesRepository.findCandidates.mockResolvedValue([
+                issue,
+            ]);
+            mockIssueMatcherService.findMatch.mockReturnValue(issue);
+
+            const actual = await service.chat(
+                'session-1',
+                'user-1',
+                'Mon riz est trop épais',
+            );
+
+            expect(actual.source).toBe('rules');
+            expect(actual.answer).toBe(issue.fix);
         });
     });
 });

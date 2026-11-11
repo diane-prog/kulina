@@ -382,6 +382,14 @@ export class AiService {
             );
         }
 
+        const allFeaturesFree =
+            this.configService.get<boolean>('app.allFeaturesFree') ??
+            (process.env.ALL_FEATURES_FREE ?? 'true').toLowerCase() === 'true';
+
+        if (allFeaturesFree) {
+            return user;
+        }
+
         const isPremium =
             user.plan === Plan.PREMIUM &&
             (!user.premiumUntil ||

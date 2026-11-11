@@ -4,13 +4,17 @@ import {
     ForbiddenException,
     Injectable,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Plan } from '../enum/plan.enum';
 import { PREMIUM_KEY } from '../decorators/require-premium.decorator';
 
 @Injectable()
 export class PremiumGuard implements CanActivate {
-    constructor(private readonly reflector: Reflector) {}
+    constructor(
+        private readonly reflector: Reflector,
+        private readonly configService?: ConfigService,
+    ) {}
 
     /**
      * Checks that the authenticated user has an active premium plan.
@@ -20,6 +24,14 @@ export class PremiumGuard implements CanActivate {
      * @throws ForbiddenException when the user is not premium
      */
     canActivate(context: ExecutionContext): boolean {
+        const allFeaturesFree =
+            this.configService?.get<boolean>('app.allFeaturesFree') ??
+            (process.env.ALL_FEATURES_FREE ?? 'true').toLowerCase() === 'true';
+
+        if (allFeaturesFree) {
+            return true;
+        }
+
         const requiresPremium = this.reflector.getAllAndOverride<boolean>(
             PREMIUM_KEY,
             [context.getHandler(), context.getClass()],

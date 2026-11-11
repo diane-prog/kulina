@@ -46,10 +46,10 @@ Build the NestJS backend for Chef en poche (Benin + Togo), following the `finanx
 - [x] `pnpm install`
 - [x] `pnpm run build`
 - [x] `pnpm run lint`
-- [x] `pnpm run test` (29 tests)
+- [x] `pnpm run test` (28 tests)
 - [x] `pnpm run test:e2e` (1 test)
 - [x] Temporary PostgreSQL integration test: app boot, seeders, phone register/login/refresh, admin publish, public recipe, media sign, session creation, messages, AI rules-first
-- [x] 50-recipe catalog seeded and publicly listed (50 published + 1 review)
+- [x] 50-recipe catalog seed added and validated by unit tests (published on first startup)
 - [x] Checkout with the `manual` provider returns instructions and a reference; a `paid` webhook upgrades the user to `premium` until `premiumUntil`
 - [x] Voice endpoint returns one narration entry per recipe step
 - [x] Two consecutive boots against the same database leave the recipe counts unchanged (seed idempotency)
@@ -95,6 +95,8 @@ Build the NestJS backend for Chef en poche (Benin + Togo), following the `finanx
 
 #### 1. 50 then 200 recipes
 
+The backend now seeds 50 demo recipes automatically. To reach 200:
+
 1. Create one YAML file per recipe in `src/core/admin/seeds/recipes/`.
 2. Use the bouillie de riz structure: `slug`, `title`, `country`, `category`, `baseServings`, `ingredients`, `steps`, `issues`.
 3. Validate each recipe with a local cook before publishing.
@@ -112,16 +114,18 @@ Content target: 50 recipes first, then 200 using the distribution from the techn
 
 #### 2. Real Mobile Money
 
+Provider adapters are implemented in `src/core/subscriptions/providers/` (manual and HTTP/HMAC). To go live:
+
 1. Choose a provider (MTN MoMo, Moov Money, Wave).
 2. Add provider credentials to `.env` (never commit them).
-3. Create a provider adapter in `src/core/subscriptions/providers/` implementing `createCheckout()` and `verifyWebhook()`.
-4. Call the provider sandbox from `SubscriptionsService.checkout`.
+3. Set `MOBILE_MONEY_PROVIDER=http` and fill `MOBILE_MONEY_BASE_URL`, `MOBILE_MONEY_API_KEY`, `MOBILE_MONEY_WEBHOOK_SECRET`, `MOBILE_MONEY_CHECKOUT_PATH`.
+4. Test with the provider sandbox.
 5. Verify signatures in `POST /webhooks/payments` before marking a payment as `paid`.
-6. Test with the provider sandbox, then switch to production credentials.
+6. Switch to production credentials.
 
 #### 3. Voice
 
-The dossier targets voice on the mobile side with `expo-speech`:
+The backend exposes `GET /api/v1/sessions/:id/voice` with the narration script. The dossier targets voice on the mobile side with `expo-speech`:
 
 1. In the React Native app, read the current `RecipeStep.narrationText`.
 2. Call `Speech.speak(step.narrationText, { language: 'fr-FR' })`.

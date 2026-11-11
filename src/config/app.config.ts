@@ -9,4 +9,6 @@ export default registerAs('app', () => ({
         (process.env.ENABLE_SWAGGER ?? 'false').toLowerCase() === 'true',
     swaggerUsername: process.env.SWAGGER_USERNAME ?? 'kulina',
     swaggerPassword: process.env.SWAGGER_PASSWORD ?? 'kulina',
+    allFeaturesFree:
+        (process.env.ALL_FEATURES_FREE ?? 'true').toLowerCase() === 'true',
 }));
