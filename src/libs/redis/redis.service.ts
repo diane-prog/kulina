@@ -17,18 +17,14 @@ export class RedisService implements OnModuleDestroy {
         const url = this.configService.get<string>('redis.url');
         this.client = url
             ? new Redis(url, {
-                  lazyConnect: true,
                   maxRetriesPerRequest: null,
-                  enableOfflineQueue: false,
+                  retryStrategy: (times) => Math.min(times * 200, 5000),
               })
             : null;
 
         if (this.client) {
             this.client.on('error', (err) => {
                 this.logger.warn(`Redis connection error: ${err.message}`);
-            });
-            this.client.connect().catch((err) => {
-                this.logger.warn(`Failed to connect to Redis: ${err.message}`);
             });
         }
     }
@@ -213,17 +209,12 @@ export class RedisService implements OnModuleDestroy {
         }
 
         const dup = this.client.duplicate({
-            lazyConnect: true,
             maxRetriesPerRequest: null,
-            enableOfflineQueue: false,
+            retryStrategy: (times) => Math.min(times * 200, 5000),
         });
 
         dup.on('error', (err) => {
             this.logger.warn(`Redis duplicate client error: ${err.message}`);
-        });
-
-        dup.connect().catch((err) => {
-            this.logger.warn(`Failed to connect Redis duplicate: ${err.message}`);
         });
 
         return dup;

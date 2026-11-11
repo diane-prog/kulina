@@ -30,11 +30,13 @@ async function bootstrap(): Promise<void> {
     app.enableCors(buildCorsOptions(env));
     app.setGlobalPrefix('api/v1', { exclude: ['/ping'] });
     const redisService = app.get(RedisService);
-    app.useWebSocketAdapter(
-        redisService.isEnabled()
-            ? new RedisIoAdapter(app, redisService)
-            : new IoAdapter(app),
-    );
+    if (redisService.isEnabled()) {
+        const redisIoAdapter = new RedisIoAdapter(app, redisService);
+        await redisIoAdapter.connectToRedis();
+        app.useWebSocketAdapter(redisIoAdapter);
+    } else {
+        app.useWebSocketAdapter(new IoAdapter(app));
+    }
     app.useGlobalPipes(new CustomValidationPipe());
 
     const reflector = app.get(Reflector);
