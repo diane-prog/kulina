@@ -9,7 +9,7 @@ export default registerAs('auth', () => ({
     jwtAccessExpirationTime:
         process.env.JWT_ACCESS_EXPIRATION_TIME ??
         process.env.JWT_EXPIRATION_TIME ??
-        '15m',
+        '7d',
     jwtRefreshExpirationTime: process.env.JWT_REFRESH_EXPIRATION_TIME ?? '30d',
     resetPasswordExpirationTime:
         process.env.RESET_PASSWORD_EXPIRATION_TIME ?? '30m',
