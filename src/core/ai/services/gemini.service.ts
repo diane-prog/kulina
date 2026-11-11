@@ -6,6 +6,7 @@ import { GoogleGenAI } from '@google/genai';
 export class GeminiService {
     private readonly logger = new Logger(GeminiService.name);
     private readonly client: GoogleGenAI | null;
+    private lastError: string | null = null;
     private lastUsage: { tokensIn: number; tokensOut: number } = {
         tokensIn: 0,
         tokensOut: 0,
@@ -41,6 +42,15 @@ export class GeminiService {
     }
 
     /**
+     * Returns the error message of the last failed Gemini call.
+     *
+     * @returns Last error message or null
+     */
+    getLastError(): string | null {
+        return this.lastError;
+    }
+
+    /**
      * Generates a structured JSON response.
      *
      * @param prompt - Prompt sent to Gemini
@@ -49,10 +59,12 @@ export class GeminiService {
      */
     async generateJson(prompt: string, model?: string): Promise<any | null> {
         if (!this.client) {
+            this.lastError = 'GEMINI_API_KEY is not configured';
             return null;
         }
 
         try {
+            this.lastError = null;
             const response = await this.client.models.generateContent({
                 model: model ?? this.configService.get<string>('ai.chatModel'),
                 contents: prompt,
@@ -69,9 +81,9 @@ export class GeminiService {
 
             return JSON.parse(response.text ?? '{}');
         } catch (error) {
-            this.logger.error(
-                `Gemini JSON generation failed: ${error instanceof Error ? error.message : error}`,
-            );
+            const msg = error instanceof Error ? error.message : String(error);
+            this.lastError = msg;
+            this.logger.error(`Gemini JSON generation failed: ${msg}`);
             return null;
         }
     }

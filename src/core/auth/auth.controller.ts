@@ -39,25 +39,13 @@ export class AuthController {
     @Public()
     @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post('register')
-    @ApiOperation({ summary: 'Register a new account and send OTP' })
+    @ApiOperation({ summary: 'Register a new account' })
     async register(@Body() dto: RegisterUserDto) {
         const result = await this.usersService.register(dto);
-        const email = result.user.email as string;
-
-        if (email) {
-            const code = await this.otpService.generateOtp(email);
-            await this.otpService.sendOtpEmail(
-                email,
-                code,
-                result.user.fullname as string,
-            );
-        }
 
         return {
-            requireOtp: true,
-            identity: result.user.email ?? result.user.phone,
             message:
-                'Compte créé avec succès. Un code de vérification à 6 chiffres a été envoyé à votre adresse email.',
+                'Compte créé avec succès. Vous pouvez maintenant vous connecter.',
             user: result.user,
         };
     }

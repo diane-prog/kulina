@@ -351,17 +351,28 @@ export class AiService {
      * @returns Structured recipe JSON
      */
     async structureRecipe(transcript: string) {
+        if (!this.geminiService.isConfigured()) {
+            return {
+                message:
+                    'Gemini is not configured. Add GEMINI_API_KEY to structure recipes.',
+            };
+        }
+
         const result = await this.geminiService.generateJson(
             this.buildStructurePrompt(transcript),
             this.configService.get<string>('ai.chatModel'),
         );
 
-        return (
-            result ?? {
-                message:
-                    'Gemini is not configured. Add GEMINI_API_KEY to structure recipes.',
-            }
-        );
+        if (!result) {
+            const error = this.geminiService.getLastError();
+            return {
+                message: error
+                    ? `Gemini API error: ${error}`
+                    : 'Gemini could not generate a response. Please check your model name and API key.',
+            };
+        }
+
+        return result;
     }
 
     /**

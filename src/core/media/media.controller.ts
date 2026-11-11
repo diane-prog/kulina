@@ -25,7 +25,6 @@ import { JwtAuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { SignUploadDto } from './dto/sign-upload.dto';
-import { UploadFileDto } from './dto/upload-file.dto';
 import { Media } from './entities/media.entity';
 import { MediaService } from './media.service';
 
@@ -86,26 +85,17 @@ export class MediaController {
             type: 'object',
             properties: {
                 file: { type: 'string', format: 'binary' },
-                scope: { type: 'string' },
-                label: { type: 'string' },
-                isTemporary: { type: 'boolean' },
             },
             required: ['file'],
         },
     })
     @ApiOperation({ summary: 'Upload one file through the API' })
-    upload(
-        @UploadedFile() file: Express.Multer.File,
-        @Body() dto: UploadFileDto,
-    ): Promise<Media> {
+    upload(@UploadedFile() file: Express.Multer.File): Promise<Media> {
         if (!file) {
             throw new BadRequestException('File is required');
         }
 
-        return this.mediaService.uploadFile(file, dto?.scope ?? 'general', {
-            label: dto?.label,
-            isTemporary: dto?.isTemporary,
-        });
+        return this.mediaService.uploadFile(file, 'general');
     }
 
     @Post('upload-multiple')
@@ -123,9 +113,6 @@ export class MediaController {
                     type: 'array',
                     items: { type: 'string', format: 'binary' },
                 },
-                scope: { type: 'string' },
-                label: { type: 'string' },
-                isTemporary: { type: 'boolean' },
             },
             required: ['files'],
         },
@@ -133,16 +120,12 @@ export class MediaController {
     @ApiOperation({ summary: 'Upload multiple files through the API' })
     uploadMany(
         @UploadedFiles() files: Express.Multer.File[],
-        @Body() dto: UploadFileDto,
     ): Promise<Media[]> {
         if (!files || files.length === 0) {
             throw new BadRequestException('At least one file is required');
         }
 
-        return this.mediaService.uploadFiles(files, dto?.scope ?? 'general', {
-            label: dto?.label,
-            isTemporary: dto?.isTemporary,
-        });
+        return this.mediaService.uploadFiles(files, 'general');
     }
 
     @ApiBearerAuth('JWT')
