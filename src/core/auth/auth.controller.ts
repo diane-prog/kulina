@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    NotFoundException,
+    Post,
+    Req,
+    UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
@@ -13,6 +22,9 @@ import { RegisterUserDto } from '../users/dto/register.dto';
 import { ResetPasswordDto } from '../users/dto/reset-password.dto';
 import { UsersService } from '../users/services/users.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { OtpService } from './services/otp.service';
 import { TokenService } from './services/token.service';
 
 @ApiTags('auth')
@@ -21,36 +33,117 @@ export class AuthController {
     constructor(
         private readonly usersService: UsersService,
         private readonly tokenService: TokenService,
+        private readonly otpService: OtpService,
     ) {}
 
     @Public()
     @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post('register')
-    @ApiOperation({ summary: 'Register a new account' })
-    async register(@Body() dto: RegisterUserDto, @Req() request: any) {
+    @ApiOperation({ summary: 'Register a new account and send OTP' })
+    async register(@Body() dto: RegisterUserDto) {
         const result = await this.usersService.register(dto);
-        const tokens = await this.tokenService.issueTokens(
-            result.user.id as string,
-            request.headers['user-agent'],
-            request.ip,
-        );
+        const email = result.user.email as string;
 
-        return { user: result.user, ...tokens };
+        if (email) {
+            const code = await this.otpService.generateOtp(email);
+            await this.otpService.sendOtpEmail(
+                email,
+                code,
+                result.user.fullname as string,
+            );
+        }
+
+        return {
+            requireOtp: true,
+            identity: result.user.email ?? result.user.phone,
+            message:
+                'Compte créé avec succès. Un code de vérification à 6 chiffres a été envoyé à votre adresse email.',
+            user: result.user,
+        };
     }
 
     @Public()
     @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post('login')
-    @ApiOperation({ summary: 'Log in with email or phone' })
-    async login(@Body() dto: LoginUserDto, @Req() request: any) {
-        const result = await this.usersService.login(dto);
+    @ApiOperation({ summary: 'Log in with credentials and send OTP code' })
+    async login(@Body() dto: LoginUserDto) {
+        const user = await this.usersService.validateCredentials(dto);
+        const targetEmail = user.email;
+
+        if (targetEmail) {
+            const code = await this.otpService.generateOtp(targetEmail);
+            await this.otpService.sendOtpEmail(
+                targetEmail,
+                code,
+                user.fullname,
+            );
+        }
+
+        return {
+            requireOtp: true,
+            identity: user.email ?? user.phone,
+            message:
+                'Identifiants valides. Un code de vérification à 6 chiffres a été envoyé à votre adresse email.',
+        };
+    }
+
+    @Public()
+    @Throttle({ default: { limit: 10, ttl: 60000 } })
+    @Post('verify-otp')
+    @ApiOperation({ summary: 'Verify OTP code and receive access tokens' })
+    async verifyOtp(@Body() dto: VerifyOtpDto, @Req() request: any) {
+        const isValid = await this.otpService.verifyOtp(dto.identity, dto.code);
+
+        if (!isValid) {
+            throw new BadRequestException(
+                'Code de vérification invalide ou expiré',
+            );
+        }
+
+        const user = await this.usersService.findByIdentity(dto.identity);
+
+        if (!user) {
+            throw new NotFoundException('Utilisateur introuvable');
+        }
+
+        await this.usersService.markEmailVerified(user.id);
+
         const tokens = await this.tokenService.issueTokens(
-            result.user.id as string,
+            user.id,
             request.headers['user-agent'],
             request.ip,
         );
 
-        return { user: result.user, ...tokens };
+        return {
+            user: this.usersService.sanitizeUser(user),
+            ...tokens,
+        };
+    }
+
+    @Public()
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
+    @Post('resend-otp')
+    @ApiOperation({ summary: 'Resend OTP verification code' })
+    async resendOtp(@Body() dto: ResendOtpDto) {
+        const user = await this.usersService.findByIdentity(dto.identity);
+
+        if (!user) {
+            throw new NotFoundException('Utilisateur introuvable');
+        }
+
+        if (user.email) {
+            const code = await this.otpService.generateOtp(user.email);
+            await this.otpService.sendOtpEmail(
+                user.email,
+                code,
+                user.fullname,
+            );
+        }
+
+        return {
+            message:
+                'Un nouveau code de vérification a été envoyé à votre adresse email.',
+        };
     }
 
     @Public()

@@ -158,6 +158,83 @@ export class UsersService {
     }
 
     /**
+     * Validates user credentials without issuing tokens.
+     *
+     * @param dto - Login credentials
+     * @returns The authenticated user entity
+     */
+    async validateCredentials(dto: LoginUserDto): Promise<Users> {
+        const identity = dto.identity.trim();
+        const where = identity.includes('@')
+            ? { email: identity.toLowerCase(), deleted: false }
+            : { phone: identity, deleted: false };
+        const user = await this.usersRepository.findOne({
+            where,
+            relations: ['role', 'avatar'],
+        });
+
+        if (!user) {
+            throw new UnauthorizedException(
+                'Invalid email, phone, or password',
+            );
+        }
+
+        if (
+            !user.isAuthorized ||
+            [
+                UserStatus.SUSPENDED,
+                UserStatus.ARCHIVED,
+                UserStatus.INACTIVE,
+            ].includes(user.status)
+        ) {
+            throw new ForbiddenException(
+                'Your account is not active. Please contact Kulina support.',
+            );
+        }
+
+        const isPasswordValid = await this.passwordHashService.comparePassword(
+            dto.password,
+            user.passwordHash,
+        );
+
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
+
+        return user;
+    }
+
+    /**
+     * Finds a user by email or phone.
+     *
+     * @param identity - Email or phone
+     * @returns The user entity or null
+     */
+    async findByIdentity(identity: string): Promise<Users | null> {
+        const clean = identity.trim();
+        const where = clean.includes('@')
+            ? { email: clean.toLowerCase(), deleted: false }
+            : { phone: clean, deleted: false };
+
+        return await this.usersRepository.findOne({
+            where,
+            relations: ['role', 'avatar'],
+        });
+    }
+
+    /**
+     * Marks the user's email as verified and updates last connection time.
+     *
+     * @param userId - User ID
+     */
+    async markEmailVerified(userId: string): Promise<void> {
+        await this.usersRepository.update(
+            { id: userId },
+            { emailVerified: true, lastConnexionAt: new Date() },
+        );
+    }
+
+    /**
      * Authenticates a user with email and password.
      *
      * @param dto - Login payload
@@ -624,7 +701,7 @@ export class UsersService {
      * @param user - User entity
      * @returns A public user representation
      */
-    private sanitizeUser(user: Users): Record<string, unknown> {
+    sanitizeUser(user: Users): Record<string, unknown> {
         return {
             id: user.id,
             fullname: user.fullname,
