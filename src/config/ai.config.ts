@@ -2,9 +2,9 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('ai', () => ({
     apiKey: process.env.GEMINI_API_KEY ?? '',
-    chatModel: process.env.GEMINI_CHAT_MODEL ?? 'gemini-1.5-flash',
-    visionModel: process.env.GEMINI_VISION_MODEL ?? 'gemini-1.5-flash',
-    ttsModel: process.env.GEMINI_TTS_MODEL ?? 'gemini-1.5-flash',
+    chatModel: process.env.GEMINI_CHAT_MODEL ?? 'gemini-flash-latest',
+    visionModel: process.env.GEMINI_VISION_MODEL ?? 'gemini-flash-latest',
+    ttsModel: process.env.GEMINI_TTS_MODEL ?? 'gemini-flash-latest',
     chatDailyQuota: Number.parseInt(
         process.env.AI_CHAT_DAILY_QUOTA ?? '40',
         10,
