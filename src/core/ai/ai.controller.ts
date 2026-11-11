@@ -34,9 +34,7 @@ export class AiController {
     @Post('structure')
     @ApiOperation({ summary: 'Structure a raw recipe transcript' })
     structure(@Body() dto: StructureRecipeDto) {
-        return this.aiQueueService.enqueueAndWait('structure-recipe', {
-            transcript: dto.transcript,
-        });
+        return this.aiService.structureRecipe(dto.transcript);
     }
 
     @ApiBearerAuth('JWT')

@@ -55,9 +55,14 @@ export class GeminiService {
      *
      * @param prompt - Prompt sent to Gemini
      * @param model - Model name
+     * @param maxOutputTokens - Maximum output tokens (defaults to 4096)
      * @returns Parsed JSON or null when unavailable
      */
-    async generateJson(prompt: string, model?: string): Promise<any | null> {
+    async generateJson(
+        prompt: string,
+        model?: string,
+        maxOutputTokens = 4096,
+    ): Promise<any | null> {
         if (!this.client) {
             this.lastError = 'GEMINI_API_KEY is not configured';
             return null;
@@ -70,7 +75,7 @@ export class GeminiService {
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
-                    maxOutputTokens: 500,
+                    maxOutputTokens,
                 },
             });
             const usage = response.usageMetadata;
@@ -79,7 +84,14 @@ export class GeminiService {
                 tokensOut: usage?.candidatesTokenCount ?? 0,
             };
 
-            return JSON.parse(response.text ?? '{}');
+            const raw = response.text?.trim() ?? '{}';
+            const cleaned = raw
+                .replace(/^```json\s*/i, '')
+                .replace(/^```\s*/i, '')
+                .replace(/\s*```$/i, '')
+                .trim();
+
+            return JSON.parse(cleaned);
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             this.lastError = msg;
