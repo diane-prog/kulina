@@ -19,9 +19,12 @@ export class RedisIoAdapter extends IoAdapter {
      * Attempts to connect to Redis for pub/sub adapter with a timeout fallback.
      */
     async connectToRedis(): Promise<void> {
+        let publisher: ReturnType<RedisService['duplicate']> = null;
+        let subscriber: ReturnType<RedisService['duplicate']> = null;
+
         try {
-            const publisher = this.redisService.duplicate();
-            const subscriber = this.redisService.duplicate();
+            publisher = this.redisService.duplicate();
+            subscriber = this.redisService.duplicate();
 
             if (!publisher || !subscriber) {
                 return;
@@ -30,17 +33,17 @@ export class RedisIoAdapter extends IoAdapter {
             await Promise.race([
                 Promise.all([
                     new Promise<void>((resolve, reject) => {
-                        if (publisher.status === 'ready') resolve();
+                        if (publisher?.status === 'ready') resolve();
                         else {
-                            publisher.once('ready', () => resolve());
-                            publisher.once('error', (err) => reject(err));
+                            publisher?.once('ready', () => resolve());
+                            publisher?.once('error', (err) => reject(err));
                         }
                     }),
                     new Promise<void>((resolve, reject) => {
-                        if (subscriber.status === 'ready') resolve();
+                        if (subscriber?.status === 'ready') resolve();
                         else {
-                            subscriber.once('ready', () => resolve());
-                            subscriber.once('error', (err) => reject(err));
+                            subscriber?.once('ready', () => resolve());
+                            subscriber?.once('error', (err) => reject(err));
                         }
                     }),
                 ]),
@@ -55,6 +58,8 @@ export class RedisIoAdapter extends IoAdapter {
             this.adapterConstructor = createAdapter(publisher, subscriber);
             this.adapterLogger.log('Redis WebSocket adapter enabled');
         } catch (error) {
+            publisher?.disconnect();
+            subscriber?.disconnect();
             this.adapterConstructor = null;
             this.adapterLogger.warn(
                 `Redis WebSocket adapter disabled (${(error as Error).message}). Using in-memory adapter.`,
